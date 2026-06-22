@@ -119,7 +119,7 @@ shown as a red badge on the affected node; SignalR pushes `dashboard-changed`.
 
 EUDIW wallet authentication + SAD consent (MAUI Android):
 
-<a href="https://github.com/Alexandru-O/VeraSign/blob/main/docs/media/wallet-demo.mp4"><img src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/wallet-demo-poster.jpg" alt="EUDIW wallet authentication and SAD consent — click to play" width="100%"></a>
+<a href="https://github.com/Alexandru-O/VeraSign/blob/main/docs/media/wallet-demo.mp4"><img src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/wallet-demo-poster.jpg" alt="EUDIW wallet authentication and SAD consent — click to play" width="300"></a>
 
 <sub>▶ Click to play.</sub>
 
