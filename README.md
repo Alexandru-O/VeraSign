@@ -24,7 +24,9 @@ content integrity (WYSIWYS).
 
 End-to-end signing from the Blazor web app:
 
-<video src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/web-demo.mp4" controls muted width="100%"></video>
+<a href="https://github.com/Alexandru-O/VeraSign/blob/main/docs/media/web-demo.mp4"><img src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/web-demo-poster.jpg" alt="VeraSign web app demo — click to play" width="100%"></a>
+
+<sub>▶ Click to play.</sub>
 
 <sub>More clips below: <a href="#signing-pipeline--5-stages">wallet auth</a> · <a href="#signature-validation--verify--signedidvalidate">validation</a>.</sub>
 
@@ -117,7 +119,9 @@ shown as a red badge on the affected node; SignalR pushes `dashboard-changed`.
 
 EUDIW wallet authentication + SAD consent (MAUI Android):
 
-<video src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/wallet-demo.mp4" controls muted width="100%"></video>
+<a href="https://github.com/Alexandru-O/VeraSign/blob/main/docs/media/wallet-demo.mp4"><img src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/wallet-demo-poster.jpg" alt="EUDIW wallet authentication and SAD consent — click to play" width="100%"></a>
+
+<sub>▶ Click to play.</sub>
 
 ## Signature validation — `/verify` + `/signed/{id}/validate`
 
@@ -129,11 +133,15 @@ hashes shown).
 
 Verifier overview:
 
-<video src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-overview.mp4" controls muted width="100%"></video>
+<a href="https://github.com/Alexandru-O/VeraSign/blob/main/docs/media/verify-overview.mp4"><img src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-overview-poster.jpg" alt="Signature verifier overview — click to play" width="100%"></a>
+
+<sub>▶ Click to play.</sub>
 
 Full validation report (per-page grid, Trust List pill, PAdES level):
 
-<video src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-report.mp4" controls muted width="100%"></video>
+<a href="https://github.com/Alexandru-O/VeraSign/blob/main/docs/media/verify-report.mp4"><img src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-report-poster.jpg" alt="Full validation report — click to play" width="100%"></a>
+
+<sub>▶ Click to play.</sub>
 
 ## Recognized limits (out of scope for a prototype)
 
