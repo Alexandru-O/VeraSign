@@ -1,0 +1,181 @@
+/* ============================================================
+   MasterSTI / VeraSign — Design Tokens v2
+   1:1 port of design/prototype/tokens.css.
+
+   Light palette in :root, dark palette in [data-theme="dark"].
+   Theme bootstrap script in App.razor sets dataset.theme
+   synchronously before paint so there is no FOUC.
+
+   Legacy bridge at the bottom keeps --ro-blue-*, --gold-*,
+   --n-* and other v1 variable names alive so unedited legacy
+   pages render acceptably under the monochrome palette
+   without per-page rewrites.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Surfaces */
+  --bg:         #FAFAF9;
+  --bg-elev:    #FFFFFF;
+  --bg-sunken:  #F4F4F2;
+  --bg-inverse: #0A0A0A;
+
+  /* Borders */
+  --border:        #E5E4E0;
+  --border-strong: #D4D2CC;
+  --border-subtle: #EFEEEA;
+
+  /* Text */
+  --fg:         #0A0A0A;
+  --fg-muted:   #525252;
+  --fg-subtle:  #6B6B66; /* WCAG 2.2 AA on --bg-elev white: ~4.59:1 */
+  --fg-inverse: #FAFAF9;
+
+  /* Brand — single restrained accent */
+  --accent:       #1A1A1A;
+  --accent-fg:    #FFFFFF;
+  --accent-hover: #2A2A2A;
+
+  /* Semantic — quiet */
+  --success: #1F7A52;  --success-bg: #E8F2EC;
+  --warning: #8B5A0A;  --warning-bg: #F7F0DD;
+  --danger:  #8B2A2A;  --danger-bg:  #F4E5E5;
+  --info:    #1F4A7A;  --info-bg:    #E5EBF2;
+
+  /* Type */
+  --font-sans:  'Geist', -apple-system, system-ui, 'Segoe UI', sans-serif;
+  --font-mono:  'Geist Mono', ui-monospace, monospace;
+  --font-serif: var(--font-sans);
+
+  /* Radii */
+  --r-xs:   4px;
+  --r-sm:   6px;
+  --r-md:   8px;
+  --r-lg:   12px;
+  --r-xl:   16px;
+  --r-pill: 999px;
+
+  /* Shadows — barely there */
+  --sh-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --sh-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --sh-md: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  --sh-lg: 0 12px 32px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.05);
+  --sh-focus: 0 0 0 3px rgba(10,10,10,0.10);
+
+  /* Motion */
+  --ease:   cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 120ms;
+  --t-med:  200ms;
+  --dur:    200ms;
+
+  /* === Legacy bridge — v1 variable names, retargeted to v2 ramp === */
+  --ro-blue-50:  #F4F4F2;
+  --ro-blue-100: #E5E4E0;
+  --ro-blue-200: #D4D2CC;
+  --ro-blue-300: #8A8A85;
+  --ro-blue-400: #525252;
+  --ro-blue-500: #1A1A1A;
+  --ro-blue-600: #0A0A0A;
+  --ro-blue-700: #0A0A0A;
+  --ro-blue-800: #060605;
+  --ro-blue-900: #060605;
+
+  --gold-50:  #F7F0DD;
+  --gold-100: #F7F0DD;
+  --gold-300: #E5B260;
+  --gold-400: #1A1A1A;
+  --gold-500: #0A0A0A;
+  --gold-600: #0A0A0A;
+
+  --n-0:   #FFFFFF;
+  --n-50:  #FAFAF9;
+  --n-100: #F4F4F2;
+  --n-200: #EFEEEA;
+  --n-300: #E5E4E0;
+  --n-400: #8A8A85;
+  --n-500: #525252;
+  --n-600: #525252;
+  --n-700: #0A0A0A;
+  --n-800: #0A0A0A;
+  --n-900: #0A0A0A;
+
+  --success-50:  var(--success-bg);
+  --success-500: var(--success);
+  --success-700: var(--success);
+  --warn-50:     var(--warning-bg);
+  --warn-500:    var(--warning);
+  --warn-700:    var(--warning);
+  --danger-50:   var(--danger-bg);
+  --danger-500:  var(--danger);
+  --danger-700:  var(--danger);
+  --info-50:     var(--info-bg);
+  --info-500:    var(--info);
+
+  --fg-1: var(--fg);
+  --fg-2: var(--fg-muted);
+  --fg-3: var(--fg-muted);
+  --fg-4: var(--fg-subtle);
+}
+
+[data-theme="dark"] {
+  --bg:         #0A0A0A;
+  --bg-elev:    #141413;
+  --bg-sunken:  #060605;
+  --bg-inverse: #FAFAF9;
+
+  --border:        #262624;
+  --border-strong: #36352F;
+  --border-subtle: #1A1A18;
+
+  --fg:         #FAFAF9;
+  --fg-muted:   #A8A89E;
+  --fg-subtle:  #9A9A93; /* WCAG 2.2 AA on --bg-elev #141413: ~5.5:1 */
+  --fg-inverse: #0A0A0A;
+
+  --accent:       #FAFAF9;
+  --accent-fg:    #0A0A0A;
+  --accent-hover: #E5E5E0;
+
+  --success: #6BCFA0;  --success-bg: #142A22;
+  --warning: #E5B260;  --warning-bg: #2B2114;
+  --danger:  #E58484;  --danger-bg:  #2B1818;
+  --info:    #84B5E5;  --info-bg:    #182338;
+
+  --sh-xs: 0 1px 2px rgba(0,0,0,0.4);
+  --sh-sm: 0 1px 3px rgba(0,0,0,0.5);
+  --sh-md: 0 4px 12px rgba(0,0,0,0.5);
+  --sh-lg: 0 12px 32px rgba(0,0,0,0.6);
+  --sh-focus: 0 0 0 3px rgba(250,250,249,0.20);
+
+  /* Legacy bridge — dark variants */
+  --ro-blue-50:  #1A1A18;
+  --ro-blue-100: #262624;
+  --ro-blue-200: #36352F;
+  --ro-blue-300: #6E6E68;
+  --ro-blue-400: #A8A89E;
+  --ro-blue-500: #FAFAF9;
+  --ro-blue-600: #FAFAF9;
+  --ro-blue-700: #E5E5E0;
+  --ro-blue-800: #FAFAF9;
+  --ro-blue-900: #FAFAF9;
+
+  --gold-50:  #2B2114;
+  --gold-100: #2B2114;
+  --gold-300: #E5B260;
+  --gold-400: #FAFAF9;
+  --gold-500: #FAFAF9;
+  --gold-600: #FAFAF9;
+
+  --n-0:   #141413;
+  --n-50:  #0A0A0A;
+  --n-100: #060605;
+  --n-200: #1A1A18;
+  --n-300: #262624;
+  --n-400: #6E6E68;
+  --n-500: #A8A89E;
+  --n-600: #A8A89E;
+  --n-700: #FAFAF9;
+  --n-800: #FAFAF9;
+  --n-900: #FAFAF9;
+}

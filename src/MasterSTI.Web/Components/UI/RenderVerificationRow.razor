@@ -1,0 +1,48 @@
+@* ADR-0008 Pixel-Bound QES validation row.
+   Verified  -> green check  · "Render verificat — R == R'"
+   Disputed  -> amber warn   · "Render disputat — R != R' (PAdES poate fi încă valid)"
+   NotPresent -> NOTHING rendered. Legacy signatures and verifier-unavailable
+   hosts look identical to the pre-Pixel-Bound QES UI per the ADR's
+   Mismatch semantics. *@
+
+@if (Status == "verified")
+{
+    <div class="vs-render-row vs-render-row--ok">
+        <Icon Name="shield-check" Size="18"/>
+        <div class="vs-render-row__body">
+            <strong>Render verificat</strong>
+            <span>Pixel-Bound QES · @Profile · @PageCount pag. la @Dpi DPI · R == R'</span>
+        </div>
+    </div>
+}
+else if (Status == "disputed")
+{
+    <div class="vs-render-row vs-render-row--warn">
+        <Icon Name="alert-triangle" Size="18"/>
+        <div class="vs-render-row__body">
+            <strong>Render disputat</strong>
+            <span>R != R' — bitmap-ul re-randat diferă de cel angajat la semnare. Semnătura PAdES poate fi încă valid criptografic; aceasta este o constatare independentă.</span>
+            @if (!string.IsNullOrEmpty(StoredRoot) && !string.IsNullOrEmpty(RecomputedRoot))
+            {
+                <dl class="vs-render-row__dl">
+                    <dt>R stocat</dt>
+                    <dd class="vs-mono">@Short(StoredRoot)</dd>
+                    <dt>R' recalculat</dt>
+                    <dd class="vs-mono">@Short(RecomputedRoot)</dd>
+                </dl>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Status { get; set; } = "notpresent";
+    [Parameter] public string? Profile { get; set; }
+    [Parameter] public int Dpi { get; set; }
+    [Parameter] public int PageCount { get; set; }
+    [Parameter] public string? StoredRoot { get; set; }
+    [Parameter] public string? RecomputedRoot { get; set; }
+
+    private static string Short(string hex)
+        => hex.Length <= 12 ? hex : $"{hex[..6]}…{hex[^6..]}";
+}

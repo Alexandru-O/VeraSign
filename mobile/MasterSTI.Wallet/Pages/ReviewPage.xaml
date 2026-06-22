@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Review — port of MobileScreens.jsx MReview.
+    Top bar with back + "Document" + download action; paper-styled excerpt;
+    details Card with rows; bottom action "Continuă spre semnare".
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             xmlns:models="clr-namespace:MasterSTI.Wallet.Models"
+             x:Class="MasterSTI.Wallet.Pages.ReviewPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Top bar -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="12"
+              Padding="20,52,20,12">
+            <Border Grid.Column="0"
+                    BackgroundColor="Transparent"
+                    StrokeThickness="0"
+                    WidthRequest="36"
+                    HeightRequest="36"
+                    StrokeShape="RoundRectangle 18">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBackTapped" />
+                </Border.GestureRecognizers>
+                <controls:IconView Name="arrow-left"
+                                   Size="20"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+            </Border>
+            <Label Grid.Column="1"
+                   x:Name="HeaderTitle"
+                   Text="Document"
+                   FontSize="15"
+                   FontFamily="{StaticResource FontSansSemiBold}"
+                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                   VerticalTextAlignment="Center"
+                   LineBreakMode="TailTruncation" />
+            <controls:BtnView Grid.Column="2"
+                              Variant="ghost"
+                              Size="sm"
+                              Icon="download" />
+        </Grid>
+
+        <!-- Body -->
+        <Grid Grid.Row="1">
+            <CollectionView x:Name="PagesView">
+
+                <!-- Big-document fallback banner (shown for > 100 pages) -->
+                <CollectionView.Header>
+                    <Grid Padding="20,0,20,0">
+                        <Border x:Name="BigDocBanner"
+                                IsVisible="False"
+                                BackgroundColor="{StaticResource Warn50}"
+                                Stroke="{StaticResource Warn500}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 12"
+                                Margin="0,16,0,16"
+                                Padding="14">
+                            <Label Text="Document prea mare pentru previzualizare în portofel. Vizualizați în portalul VeraSign."
+                                   FontSize="13"
+                                   TextColor="{StaticResource Warn500}" />
+                        </Border>
+                    </Grid>
+                </CollectionView.Header>
+
+                <!-- One scrollable item per PDF page; bitmap renders lazily on bind -->
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:PdfPageItem">
+                        <Border BindingContextChanged="OnPageItemBound"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 12"
+                                Margin="20,0,20,12"
+                                MinimumHeightRequest="240">
+                            <VerticalStackLayout Spacing="8" Padding="12,12,12,8">
+                                <Label Text="{Binding Caption}"
+                                       FontSize="11"
+                                       CharacterSpacing="1.6"
+                                       TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}" />
+                                <Grid MinimumHeightRequest="200">
+                                    <ActivityIndicator IsRunning="{Binding IsLoading}"
+                                                       IsVisible="{Binding IsLoading}"
+                                                       Color="{StaticResource RoBlue500}"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center" />
+                                    <Image Source="{Binding Source}"
+                                           Aspect="AspectFit"
+                                           HorizontalOptions="Fill" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <!-- Details card -->
+                <CollectionView.Footer>
+                    <Grid Padding="20,4,20,20">
+                        <controls:CardView PaddingValue="16">
+                            <VerticalStackLayout Spacing="0">
+                                <Label Text="Detalii cerere"
+                                       FontSize="12"
+                                       TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                                       Margin="0,0,0,8" />
+
+                                <Grid ColumnDefinitions="*,Auto" Padding="0,4">
+                                    <Label Grid.Column="0" Text="Expeditor"
+                                           FontSize="13"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                                    <Label Grid.Column="1"
+                                           x:Name="SenderLabel"
+                                           Text="—"
+                                           FontSize="13"
+                                           FontFamily="{StaticResource FontSansMedium}"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" Padding="0,4">
+                                    <Label Grid.Column="0" Text="Nivel"
+                                           FontSize="13"
+                                           VerticalOptions="Center"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                                    <controls:SigLevelView Grid.Column="1"
+                                                           x:Name="LevelView"
+                                                           Level="QES"
+                                                           Size="sm" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" Padding="0,4">
+                                    <Label Grid.Column="0" Text="Pagini"
+                                           FontSize="13"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                                    <Label Grid.Column="1"
+                                           x:Name="PagesLabel"
+                                           Text="—"
+                                           FontSize="13"
+                                           FontFamily="{StaticResource FontSansMedium}"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" Padding="0,4">
+                                    <Label Grid.Column="0" Text="Hash SHA-256"
+                                           FontSize="13"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                                    <Label Grid.Column="1"
+                                           x:Name="HashLabel"
+                                           Text="—"
+                                           FontSize="11"
+                                           FontFamily="{StaticResource FontMono}"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" Padding="0,4">
+                                    <Label Grid.Column="0" Text="Mărime"
+                                           FontSize="13"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                                    <Label Grid.Column="1"
+                                           x:Name="SizeLabel"
+                                           Text="—"
+                                           FontSize="13"
+                                           FontFamily="{StaticResource FontSansMedium}"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </controls:CardView>
+                    </Grid>
+                </CollectionView.Footer>
+            </CollectionView>
+
+            <ActivityIndicator x:Name="PageLoadingIndicator"
+                               IsRunning="True"
+                               IsVisible="True"
+                               Color="{StaticResource RoBlue500}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Bottom CTA bar -->
+        <Grid Grid.Row="2"
+              BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+              Padding="20"
+              RowDefinitions="1,Auto">
+            <BoxView Grid.Row="0"
+                     Color="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                     HeightRequest="1"
+                     HorizontalOptions="Fill"
+                     VerticalOptions="Start"
+                     Margin="-20,-20,-20,0" />
+            <controls:BtnView Grid.Row="1"
+                              Text="Continuă spre semnare"
+                              Variant="primary"
+                              Size="lg"
+                              Full="True"
+                              IconRight="arrow-right"
+                              Clicked="OnContinueClicked" />
+        </Grid>
+    </Grid>
+
+</ContentPage>

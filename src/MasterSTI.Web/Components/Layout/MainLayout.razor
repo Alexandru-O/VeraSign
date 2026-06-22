@@ -1,0 +1,100 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject IAuthService Auth
+@inject NavigationManager Navigation
+@inject PageContext Page
+@inject MasterSTI.Web.Services.LanguageService Lang
+
+@* VeraSign authenticated shell — v2 sidebar (bg-elev) + topbar.
+   Mirrors prototype/components/WebScreens.jsx Sidebar + TopBar (lines 3-50). *@
+
+<a href="#main-content" class="vs-skip-link">@Lang.T("topbar.skip")</a>
+
+<div class="vs-shell">
+    <aside class="vs-sidebar" aria-label="Bară laterală">
+        <div class="vs-sidebar__brand">
+            <Logo Size="18"/>
+        </div>
+
+        <nav class="vs-sidebar__nav" aria-label="Principal">
+            @foreach (var item in _nav)
+            {
+                <NavLink class="vs-sidebar__item"
+                         ActiveClass="vs-sidebar__item--active"
+                         href="@item.Href"
+                         Match="@(item.Match)"
+                         aria-current="@(IsActive(item.Href, item.Match) ? "page" : null)">
+                    <Icon Name="@item.Icon" Size="16"/>
+                    <span>@Lang.T(item.LabelKey)</span>
+                </NavLink>
+            }
+        </nav>
+
+        <div class="vs-sidebar__footer">
+            <div class="vs-sidebar__avatar" aria-hidden="true">@(Auth.UserInitials ?? "DU")</div>
+            <div class="vs-sidebar__user">
+                <div class="vs-sidebar__user-name">@(Auth.UserDisplayName ?? "Demo User")</div>
+                <div class="vs-sidebar__user-org">@(Auth.Organization ?? "VeraSign Demo SRL")</div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="vs-shell__main">
+        <header class="vs-topbar">
+            <h1 class="vs-topbar__title">@Page.Title</h1>
+            <div class="vs-topbar__actions">
+                <Btn Variant="primary" Icon="plus" Size="sm" OnClick="GoNewRequest">@Lang.T("topbar.newRequest")</Btn>
+                <LangSwitcher/>
+                <ThemeToggle/>
+            </div>
+        </header>
+
+        <main id="main-content" tabindex="-1" class="vs-shell__content">
+            @Body
+        </main>
+    </div>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    A apărut o eroare neașteptată.
+    <a href="." class="reload">Reîncarcă</a>
+    <span class="dismiss">x</span>
+</div>
+
+@code {
+    private sealed record NavItem(string Href, string Icon, string LabelKey, NavLinkMatch Match);
+
+    private static readonly NavItem[] _nav = new[]
+    {
+        new NavItem("/dashboard",  "inbox",        "nav.dashboard", NavLinkMatch.All),
+        new NavItem("/documents",  "doc",          "nav.documents", NavLinkMatch.Prefix),
+        new NavItem("/templates",  "folder",       "nav.templates", NavLinkMatch.Prefix),
+        new NavItem("/verify",     "shield-check", "nav.verify",    NavLinkMatch.Prefix),
+        new NavItem("/settings",   "settings",     "nav.settings",  NavLinkMatch.Prefix),
+    };
+
+    protected override void OnInitialized()
+    {
+        Page.OnChange += HandlePageChange;
+        Lang.OnChanged += HandlePageChange;
+    }
+
+    private void HandlePageChange() => InvokeAsync(StateHasChanged);
+
+    private void GoNewRequest() => Navigation.NavigateTo("/documents/new");
+
+    private bool IsActive(string href, NavLinkMatch match)
+    {
+        var current = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+        var target = href.TrimEnd('/');
+        return match == NavLinkMatch.All
+            ? string.Equals(current, target, StringComparison.OrdinalIgnoreCase)
+            : current.StartsWith(target, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose()
+    {
+        Page.OnChange -= HandlePageChange;
+        Lang.OnChanged -= HandlePageChange;
+    }
+}

@@ -1,0 +1,48 @@
+@* Card — surface elevation. Optional gold emphasis. *@
+
+<div class="@_classes"
+     style="@_style"
+     @onclick="OnClick"
+     role="@(OnClick.HasDelegate ? "button" : null)"
+     tabindex="@(OnClick.HasDelegate ? "0" : null)">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Padding override in pixels (defaults to 20).</summary>
+    [Parameter] public int? Padding { get; set; }
+
+    /// <summary>Make the card cursor:pointer + lift on hover.</summary>
+    [Parameter] public bool Hover { get; set; }
+
+    /// <summary>"gold" — gold border emphasis.</summary>
+    [Parameter] public string? Emphasis { get; set; }
+
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string _classes
+    {
+        get
+        {
+            var parts = new List<string> { "vs-card" };
+            if (Hover) parts.Add("vs-card--hover");
+            if (!string.IsNullOrEmpty(Emphasis)) parts.Add($"vs-card--{Emphasis}");
+            if (!string.IsNullOrEmpty(AdditionalClass)) parts.Add(AdditionalClass);
+            return string.Join(' ', parts);
+        }
+    }
+
+    private string? _style
+    {
+        get
+        {
+            var s = Padding is null ? string.Empty : $"padding:{Padding}px;";
+            if (!string.IsNullOrEmpty(Style)) s += Style;
+            return string.IsNullOrEmpty(s) ? null : s;
+        }
+    }
+}

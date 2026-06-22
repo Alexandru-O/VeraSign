@@ -1,0 +1,71 @@
+# --- .NET / Visual Studio ---------------------------------------------------
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+.vs/
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# --- Build outputs ----------------------------------------------------------
+publish/
+artifacts/
+out/
+
+# --- ASP.NET Core dev certs / logs / runtime --------------------------------
+**/logs/
+*.pfx
+*.snk
+
+# --- Docker / local secrets -------------------------------------------------
+.env
+.env.*
+!.env.example
+# Dev HTTPS cert + pinned Mock.Issuer key (generated locally, never committed)
+docker/https/
+docker/issuer/
+appsettings.Local.json
+**/appsettings.Local.json
+
+# --- Storage volumes when bind-mounted instead of named volumes -------------
+storage/
+
+# --- MAUI / Android ---------------------------------------------------------
+mobile/**/bin/
+mobile/**/obj/
+mobile/**/Resources/raw/google-services.json
+
+# --- Claude Code local state ------------------------------------------------
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+# Skill files are now distributed via plugins (e.g. plugin:caveman:caveman-commit)
+# resolved from ~/.claude/plugins/cache. Ignore future per-repo copies dropped
+# under .claude/skills/ so they don't show up as untracked noise. Already-tracked
+# files keep tracking — git ignore doesn't apply retroactively.
+.claude/skills/
+
+# --- Test / screenshot artifacts --------------------------------------------
+.playwright-mcp/
+# Stray PNGs at the repo root (test captures). Tracked screenshots live under
+# docs/screenshots/ which is whitelisted explicitly.
+/*.png
+!docs/screenshots/*.png
+# Stray UI snapshot dumps at the repo root (root-level only — legitimate
+# ui*.xml inside subfolders stays tracked).
+/ui*.xml
+
+# --- Local scratch / handoff docs (per-machine, never commit) ---------------
+/Temp/
+
+# --- Misc -------------------------------------------------------------------
+*.log
+.DS_Store
+Thumbs.db

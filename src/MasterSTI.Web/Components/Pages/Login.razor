@@ -1,0 +1,142 @@
+@page "/login"
+@layout BlankLayout
+@rendermode InteractiveServer
+@inject IAuthService Auth
+@inject NavigationManager Navigation
+@using MasterSTI.Web.Components.Pages.LoginParts
+@using MasterSTI.Shared.DTOs.Auth
+
+<PageTitle>VeraSign · Autentificare</PageTitle>
+
+@* WLogin (v2) — split 50/50: dark inverse left brand + form right.
+   Mirrors prototype/components/WebScreens.jsx WLogin (lines 53-104). *@
+
+<div class="vs-login2">
+    <div class="vs-login2__hero">
+        <div class="vs-login2__hero-top">
+            <div class="vs-login2__brand">
+                <div class="vs-login2__brand-dot"><div class="vs-login2__brand-dot-inner"></div></div>
+                <span>veraSign</span>
+            </div>
+        </div>
+
+        <div class="vs-login2__hero-mid">
+            <div class="vs-login2__hero-headline">
+                Semnături legale.<br/>
+                <span class="vs-login2__hero-headline-mut">Zero hârtie.</span>
+            </div>
+            <div class="vs-login2__hero-sub">
+                Conformitate eIDAS 2.0. Integrare nativă cu EU Digital Identity Wallet și certificate calificate
+                de la TSP-uri europene.
+            </div>
+            <div class="vs-login2__hero-stats">
+                <span>27 state UE</span><span>·</span>
+                <span>eIDAS 2.0</span><span>·</span>
+                <span>QES</span>
+            </div>
+        </div>
+
+        <div class="vs-login2__hero-foot">v1.0 · 2026</div>
+    </div>
+
+    <div class="vs-login2__panel">
+        <div class="vs-login2__panel-toggle">
+            <ThemeToggle/>
+        </div>
+
+        <div class="vs-login2__form-wrap">
+            <div class="vs-login2__title">Bine ai revenit</div>
+            <div class="vs-login2__sub">Autentifică-te pentru a continua.</div>
+
+            <EditForm Model="this" OnValidSubmit="HandleLogin" class="vs-login2__form">
+                <Field Label="Email">
+                    <Input @bind-Value="_email" Icon="mail" Placeholder="admin@verasign.demo" Autocomplete="email"/>
+                </Field>
+
+                <Field Label="Parolă">
+                    <Input @bind-Value="_password" Type="password" Icon="lock" Placeholder="••••••••••" Autocomplete="current-password"/>
+                </Field>
+
+                <div class="vs-login2__row">
+                    <label class="vs-login2__remember">
+                        <input type="checkbox" checked="@_remember" @onchange="OnRememberChange"/>
+                        Ține-mă autentificat
+                    </label>
+                    <a href="#" class="vs-login2__link">Am uitat parola</a>
+                </div>
+
+                @if (_error is not null)
+                {
+                    <div class="vs-login2__error" role="alert">@_error</div>
+                }
+
+                <Btn Type="submit" Size="lg" Full="true" Loading="_busy">Continuă</Btn>
+
+                <div class="vs-login2__sep">
+                    <span></span><div>sau</div><span></span>
+                </div>
+
+                <div class="vs-login2__social">
+                    <Btn Variant="secondary" Full="true" Size="lg" Icon="wallet" OnClick="StartWalletLoginAsync">EU Wallet</Btn>
+                    <Btn Variant="secondary" Full="true" Size="lg" Icon="shield" Disabled="true">ROeID</Btn>
+                </div>
+            </EditForm>
+
+            <WalletLoginDialog @ref="_walletDialog" OnSuccess="OnWalletSuccess" OnCancel="OnWalletCancel"/>
+
+            <div class="vs-login2__signup">
+                Nu ai cont încă? <a href="#" class="vs-login2__link">Înregistrează organizația</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private bool _remember = true;
+    private bool _busy;
+    private string? _error;
+    private WalletLoginDialog? _walletDialog;
+
+    private void OnRememberChange(ChangeEventArgs e) => _remember = e.Value is bool b && b;
+
+    private async Task HandleLogin()
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            var ok = await Auth.SignInAsync(_email, _password);
+            if (!ok)
+            {
+                _error = "Email sau parolă incorecte.";
+                return;
+            }
+            Navigation.NavigateTo("/dashboard");
+        }
+        catch (Exception ex)
+        {
+            _error = $"Eroare la autentificare: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task StartWalletLoginAsync()
+    {
+        _error = null;
+        if (_walletDialog is not null)
+            await _walletDialog.ShowAsync();
+    }
+
+    private async Task OnWalletSuccess(LoginResponse loginResponse)
+    {
+        await Auth.SignInWithWalletAsync(loginResponse.Token, loginResponse.User);
+        Navigation.NavigateTo("/dashboard");
+    }
+
+    private void OnWalletCancel() { /* nothing — dialog hides itself */ }
+}

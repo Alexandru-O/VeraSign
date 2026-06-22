@@ -1,0 +1,32 @@
+@* Field — labelled wrapper for an Input or other control.
+   Mirrors Brand.jsx Field but adds explicit Error slot. *@
+
+<label class="vs-field">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <div class="vs-field__label">
+            @Label
+            @if (Required)
+            {
+                <span class="vs-field__req" aria-hidden="true"> *</span>
+            }
+        </div>
+    }
+    @ChildContent
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="vs-field__error" role="alert">@Error</div>
+    }
+    else if (!string.IsNullOrEmpty(Hint))
+    {
+        <div class="vs-field__hint">@Hint</div>
+    }
+</label>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

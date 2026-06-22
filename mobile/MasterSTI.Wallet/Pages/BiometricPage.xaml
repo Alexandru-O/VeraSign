@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    M3 — Biometric prompt. Big circle + fingerprint, three phases:
+    idle (white) -> scanning (light tint + spinner) -> done (green check).
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.BiometricPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{StaticResource Bg}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,*"
+          Padding="28,72,28,32">
+
+        <!-- Back -->
+        <Border Grid.Row="0"
+                BackgroundColor="{StaticResource BgElev}"
+                Stroke="{StaticResource Border}"
+                StrokeThickness="1"
+                WidthRequest="36"
+                HeightRequest="36"
+                StrokeShape="RoundRectangle 18"
+                HorizontalOptions="Start">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBackTapped" />
+            </Border.GestureRecognizers>
+            <controls:IconView Name="arrow-left"
+                               Size="16"
+                               TintColor="{StaticResource Fg2}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+        </Border>
+
+        <!-- Title -->
+        <VerticalStackLayout Grid.Row="1"
+                             Spacing="8"
+                             Margin="0,40,0,0"
+                             HorizontalOptions="Center">
+            <Label x:Name="TitleLabel"
+                   Text="Confirmă asocierea"
+                   FontFamily="{StaticResource FontSerif}"
+                   FontSize="26"
+                   TextColor="{StaticResource RoBlue900}"
+                   HorizontalOptions="Center" />
+            <Label Text="Folosește biometria pentru a debloca cheia din enclava de securitate."
+                   FontSize="14"
+                   TextColor="{StaticResource Fg3}"
+                   HorizontalTextAlignment="Center"
+                   MaximumWidthRequest="280"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+
+        <!-- Spacer + circle -->
+        <VerticalStackLayout Grid.Row="3"
+                             Spacing="20"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center">
+            <Border x:Name="ScanCircle"
+                    BackgroundColor="{StaticResource BgElev}"
+                    Stroke="{StaticResource Border}"
+                    StrokeThickness="2"
+                    WidthRequest="140"
+                    HeightRequest="140"
+                    StrokeShape="RoundRectangle 70"
+                    HorizontalOptions="Center">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnScanTapped" />
+                </Border.GestureRecognizers>
+                <Grid HorizontalOptions="Center" VerticalOptions="Center">
+                    <controls:IconView x:Name="FpIcon"
+                                       Name="fingerprint"
+                                       Size="56"
+                                       TintColor="{StaticResource Fg3}" />
+                    <controls:IconView x:Name="CheckIcon"
+                                       Name="check"
+                                       Size="48"
+                                       TintColor="White"
+                                       IsVisible="False" />
+                </Grid>
+            </Border>
+            <Label x:Name="StatusLabel"
+                   Text="Apasă pentru a scana"
+                   FontSize="13"
+                   TextColor="{StaticResource Fg3}"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>

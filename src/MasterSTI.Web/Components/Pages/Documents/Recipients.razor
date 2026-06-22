@@ -1,0 +1,561 @@
+@page "/documents/{Id:guid}/recipients"
+@rendermode InteractiveServer
+@using System.Net.Http.Json
+@using System.Text.Json.Serialization
+@using MasterSTI.Shared.DTOs.Documents
+@using MasterSTI.Shared.DTOs.Wallet
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpFactory
+@inject IAuthService Auth
+@implements IDisposable
+
+<PageTitle>VeraSign · Semnatari</PageTitle>
+<PageHeader Title="Semnatari" Breadcrumb="Documente · Cerere nouă · Semnatari"/>
+
+@* W4 RecipientsScreen + QRHandoffModal.
+   Mirrors WebScreens.jsx RecipientsScreen + QRHandoffModal (lines 456-566). *@
+
+<div class="vs-rec">
+    <Card Padding="20" AdditionalClass="vs-rec__stepper">
+        <Stepper Steps="@(new[] {"Încărcare","Semnatari","Câmpuri","Trimitere"})" CurrentIndex="1"/>
+    </Card>
+
+    <Card Padding="0">
+        <div class="vs-rec__head">
+            <div>
+                <div class="vs-rec__title">Cine trebuie să semneze?</div>
+                <div class="vs-rec__sub">Ordinea contează — fiecare semnatar primește invitația după cel dinaintea lui.</div>
+            </div>
+            <Btn Variant="secondary" Size="md" Icon="plus" AdditionalClass="vs-rec__add">Adaugă semnatar</Btn>
+        </div>
+        <div class="vs-rec__quickadd" aria-label="Adaugă rapid persoane demo">
+            <span class="vs-rec__quickadd-label">Adaugă rapid:</span>
+            @foreach (var p in DemoData.QuickAddPersonas)
+            {
+                var persona = p;
+                var taken = HasEmail(persona.Email);
+                <button type="button"
+                        class="vs-rec__chip @(taken ? "vs-rec__chip--disabled" : null)"
+                        disabled="@taken"
+                        @onclick="@(() => AddPersonaAsync(persona.Name, persona.Email, persona.Role, persona.Level))">
+                    <Icon Name="plus" Size="12"/>
+                    @persona.Name <span class="vs-rec__chip-role">(@persona.Role.ToLowerInvariant())</span>
+                </button>
+            }
+            @{
+                var adminEmail = Auth.UserEmail;
+                var adminName = Auth.UserDisplayName ?? "Eu";
+                var adminTaken = !string.IsNullOrEmpty(adminEmail) && HasEmail(adminEmail);
+                var adminDisabled = adminTaken || string.IsNullOrEmpty(adminEmail);
+            }
+            <button type="button"
+                    class="vs-rec__chip @(adminDisabled ? "vs-rec__chip--disabled" : null)"
+                    disabled="@adminDisabled"
+                    @onclick="@(() => AddPersonaAsync(adminName, adminEmail!, "Administrator", "QES"))">
+                <Icon Name="plus" Size="12"/>
+                Eu <span class="vs-rec__chip-role">(admin)</span>
+            </button>
+        </div>
+        @if (_recipients.Count > 1)
+        {
+            <div class="vs-rec__banner" role="note">
+                <Icon Name="info" Size="14"/>
+                <span>Ordinea listei = ordinea de semnare. Trage rândurile sau folosește săgețile sus/jos pe mâner pentru a schimba.</span>
+            </div>
+        }
+        <div class="vs-rec__list" role="list">
+            @foreach (var (p, idx) in _recipients.Select((r, i) => (r, i)))
+            {
+                var localIdx = idx;
+                var dragOver = _dragOverIdx == localIdx;
+                <div class="vs-rec__row @(dragOver ? "vs-rec__row--over" : null) @(_draggingIdx == localIdx ? "vs-rec__row--dragging" : null)"
+                     role="listitem"
+                     draggable="true"
+                     @ondragstart="@(() => OnDragStart(localIdx))"
+                     @ondragover="@(() => OnDragOver(localIdx))"
+                     @ondragover:preventDefault="true"
+                     @ondragleave="OnDragLeave"
+                     @ondrop="@(() => OnDropAsync(localIdx))"
+                     @ondrop:preventDefault="true"
+                     @ondragend="OnDragEnd">
+                    <button class="vs-rec__handle"
+                            type="button"
+                            aria-label="@($"Mută {p.Name}: săgeată sus/jos schimbă ordinea")"
+                            @onkeydown="@(e => OnHandleKeyDownAsync(e, localIdx))">
+                        <Icon Name="grip" Size="14"/>
+                    </button>
+                    <div class="vs-rec__order">@p.Order</div>
+                    <div class="vs-rec__avatar">@Initials(p.Name)</div>
+                    <div class="vs-rec__person">
+                        <div class="vs-rec__name">@p.Name</div>
+                        <div class="vs-rec__meta">@p.Email</div>
+                    </div>
+                    <select class="vs-rec__level"
+                            value="@p.Level"
+                            @onchange="@(e => ChangeLevelAsync(localIdx, e.Value?.ToString() ?? "QES"))"
+                            aria-label="Nivel semnătură">
+                        <option value="QES">QES · Calificată</option>
+                        <option value="AdES">AdES · Avansată</option>
+                        <option value="SES">SES · Simplă</option>
+                    </select>
+                    <button class="vs-rec__more" aria-label="Șterge" type="button"
+                            @onclick="@(() => RemoveAsync(localIdx))">
+                        <Icon Name="x" Size="14"/>
+                    </button>
+                </div>
+            }
+            @if (_recipients.Count == 0)
+            {
+                <div class="vs-rec__empty">Niciun semnatar — adaugă unul mai jos.</div>
+            }
+        </div>
+        <div class="vs-rec__addrow">
+            <input class="vs-rec__input" placeholder="Nume"
+                   @bind="_newName" @bind:event="oninput"
+                   @onkeydown="OnAddKeyDown" />
+            <input class="vs-rec__input" placeholder="Email" type="email"
+                   @bind="_newEmail" @bind:event="oninput"
+                   @onkeydown="OnAddKeyDown" />
+            <select class="vs-rec__level" @bind="_newLevel">
+                <option value="QES">QES</option>
+                <option value="AdES">AdES</option>
+                <option value="SES">SES</option>
+            </select>
+            <Btn Variant="secondary" Size="md" Icon="plus" OnClick="AddAsync"
+                 Disabled="@(_addBusy || string.IsNullOrWhiteSpace(_newName) || string.IsNullOrWhiteSpace(_newEmail))"
+                 Loading="_addBusy">Adaugă</Btn>
+        </div>
+        @if (_addError is not null)
+        {
+            <div class="vs-rec__error" role="alert">@_addError</div>
+        }
+    </Card>
+
+    <div class="vs-rec__split">
+        <Card Padding="18">
+            <div class="vs-rec__field-title">Mesaj pentru semnatari</div>
+            <textarea class="vs-rec__textarea" @bind="_message"></textarea>
+        </Card>
+
+        <Card Padding="18">
+            <div class="vs-rec__field-title">Opțiuni</div>
+            @for (var i = 0; i < _options.Length; i++)
+            {
+                var idx = i;
+                var opt = _options[idx];
+                <label class="vs-rec__opt @(idx == 0 ? null : "vs-rec__opt--sep")">
+                    <input type="checkbox" checked="@opt.On" @onchange="@(e => ToggleOption(idx, e))"/>
+                    @opt.Label
+                </label>
+            }
+        </Card>
+    </div>
+
+    @if (_sendError is not null)
+    {
+        <div class="vs-rec__error" role="alert">@_sendError</div>
+    }
+
+    <div class="vs-rec__cta">
+        <Btn Variant="secondary" Size="lg" Icon="qr" OnClick="OpenQrAsync" Disabled="_sending">Vreau să semnez acum (QR)</Btn>
+        <Btn Variant="ghost" Size="lg" Disabled="_sending">Salvează ca draft</Btn>
+        <Btn Size="lg" IconRight="arrow-right" OnClick="GoToFields" Loading="_sending">Continuă cu câmpuri</Btn>
+    </div>
+</div>
+
+@if (_showQr)
+{
+    <div class="vs-modal__backdrop" @onclick="CloseQr">
+        <div class="vs-modal__box" @onclick:stopPropagation="true">
+            <div class="vs-modal__head">
+                <div>
+                    <div class="vs-modal__title">Scanează cu VeraSign mobile</div>
+                    <div class="vs-modal__sub">Pentru a semna acest document pe telefonul tău</div>
+                </div>
+                <button class="vs-modal__close" @onclick="CloseQr" aria-label="Închide">
+                    <Icon Name="x" Size="16"/>
+                </button>
+            </div>
+            <div class="vs-modal__body">
+                @if (_qrError is not null)
+                {
+                    <div class="vs-rec__error" role="alert">@_qrError</div>
+                    <Btn Variant="primary" OnClick="OpenQrAsync">Încearcă din nou</Btn>
+                }
+                else if (_qrPayload is not null)
+                {
+                    <div class="vs-modal__qr-wrap">
+                        <QR Value="@_qrPayload" Size="220"/>
+                    </div>
+                    <div class="vs-modal__hint">
+                        @(_walletStatus switch
+                        {
+                            "complete" => "Wallet a răspuns. Documentul intră în semnare.",
+                            "expired"  => "Sesiunea a expirat.",
+                            "failed"   => "Răspuns invalid de la wallet.",
+                            _ => "Scanează cu aplicația EUDIW Wallet pentru a semna documentul de pe telefon."
+                        })
+                    </div>
+                }
+                else
+                {
+                    <div class="vs-modal__hint">
+                        <span class="vs-btn__spinner" aria-hidden="true"></span>
+                        Se inițializează&hellip;
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private string _message = BuildSystemMessage(null);
+    private string? _lastGreetedName;
+    private bool _sending;
+    private string? _sendError;
+    private readonly List<RecipientInput> _recipients = new();
+    private string _newName = string.Empty;
+    private string _newEmail = string.Empty;
+    private string _newLevel = "QES";
+    private bool _addBusy;
+    private string? _addError;
+
+    private int? _draggingIdx;
+    private int? _dragOverIdx;
+
+    private bool _showQr;
+    private string? _qrPayload;
+    private string? _qrError;
+    private string _walletStatus = "pending";
+    private string? _walletState;
+    private CancellationTokenSource? _qrCts;
+
+    private record OptionRow(string Label, bool On);
+    private OptionRow[] _options = new[]
+    {
+        new OptionRow("Expiră în 7 zile",          true),
+        new OptionRow("Reamintiri la 2 zile",      true),
+        new OptionRow("Notifică la vizualizare",   false),
+        new OptionRow("Cere video selfie la QES",  false),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = HttpFactory.CreateClient("MasterSTI.Api");
+        try
+        {
+            var loaded = await client.GetFromJsonAsync<IReadOnlyList<RecipientDto>>(
+                $"/api/documents/{Id}/recipients");
+            if (loaded is { Count: > 0 })
+            {
+                _recipients.AddRange(loaded.OrderBy(r => r.Order)
+                    .Select(r => new RecipientInput(r.Id, r.Email, r.Name, r.Order, r.Level)));
+            }
+            else
+            {
+                _recipients.AddRange(DemoData.Signatories
+                    .Select(s => new RecipientInput(null, s.Email, s.Name, s.Order, s.Level)));
+                await PersistAsync(client);
+            }
+        }
+        catch { /* keep empty list, user can add manually */ }
+        RefreshSystemMessage();
+    }
+
+    private void RefreshSystemMessage()
+    {
+        var current = _recipients.Count > 0 ? FirstName(_recipients[0].Name) : null;
+        if (!string.Equals(current, _lastGreetedName, StringComparison.Ordinal))
+        {
+            _message = BuildSystemMessage(current);
+            _lastGreetedName = current;
+        }
+    }
+
+    private static string BuildSystemMessage(string? firstName)
+    {
+        var greeting = string.IsNullOrEmpty(firstName) ? "Bună" : $"Bună {firstName}";
+        return $"{greeting}, ai primit un document spre semnare prin VeraSign. Te rog să-l revizuiești și să-l semnezi cu EUDIW Wallet. — Echipa VeraSign";
+    }
+
+    private static string? FirstName(string? full)
+        => string.IsNullOrWhiteSpace(full) ? null : full.Trim().Split(' ', 2)[0];
+
+    private async Task ChangeLevelAsync(int idx, string level)
+    {
+        if (idx < 0 || idx >= _recipients.Count) return;
+        var cur = _recipients[idx];
+        _recipients[idx] = cur with { Level = level };
+        await PersistAsync(HttpFactory.CreateClient("MasterSTI.Api"));
+    }
+
+    private async Task RemoveAsync(int idx)
+    {
+        if (idx < 0 || idx >= _recipients.Count) return;
+        _recipients.RemoveAt(idx);
+        ReorderInPlace();
+        await PersistAsync(HttpFactory.CreateClient("MasterSTI.Api"));
+    }
+
+    private async Task AddAsync()
+    {
+        if (_addBusy) return;
+        if (string.IsNullOrWhiteSpace(_newName) || string.IsNullOrWhiteSpace(_newEmail))
+        {
+            _addError = "Completează nume și email.";
+            return;
+        }
+        if (!_newEmail.Contains('@', StringComparison.Ordinal))
+        {
+            _addError = "Email invalid.";
+            return;
+        }
+
+        _addBusy = true;
+        _addError = null;
+        try
+        {
+            _recipients.Add(new RecipientInput(null, _newEmail.Trim(), _newName.Trim(),
+                _recipients.Count + 1, _newLevel));
+            _newName = string.Empty;
+            _newEmail = string.Empty;
+            _newLevel = "QES";
+            var ok = await PersistAsync(HttpFactory.CreateClient("MasterSTI.Api"));
+            if (!ok) _addError = "Salvarea pe server a eșuat. Verifică conexiunea.";
+        }
+        finally
+        {
+            _addBusy = false;
+        }
+    }
+
+    private async Task OnAddKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await AddAsync();
+    }
+
+    private bool HasEmail(string email)
+        => _recipients.Any(r => string.Equals(r.Email, email, StringComparison.OrdinalIgnoreCase));
+
+    private async Task AddPersonaAsync(string name, string email, string role, string level)
+    {
+        if (_addBusy || string.IsNullOrWhiteSpace(email) || HasEmail(email)) return;
+
+        _addBusy = true;
+        _addError = null;
+        try
+        {
+            _recipients.Add(new RecipientInput(null, email.Trim(), name.Trim(), _recipients.Count + 1, level));
+            var ok = await PersistAsync(HttpFactory.CreateClient("MasterSTI.Api"));
+            if (!ok) _addError = "Salvarea pe server a eșuat. Verifică conexiunea.";
+        }
+        finally
+        {
+            _addBusy = false;
+        }
+    }
+
+    private void ReorderInPlace()
+    {
+        for (var i = 0; i < _recipients.Count; i++)
+            _recipients[i] = _recipients[i] with { Order = i + 1 };
+    }
+
+    private void OnDragStart(int idx) => _draggingIdx = idx;
+
+    private void OnDragOver(int idx)
+    {
+        if (_draggingIdx is null || _draggingIdx == idx) return;
+        _dragOverIdx = idx;
+    }
+
+    private void OnDragLeave() => _dragOverIdx = null;
+
+    private void OnDragEnd()
+    {
+        _draggingIdx = null;
+        _dragOverIdx = null;
+    }
+
+    private async Task OnDropAsync(int targetIdx)
+    {
+        var from = _draggingIdx;
+        _draggingIdx = null;
+        _dragOverIdx = null;
+        if (from is null || from == targetIdx) return;
+        if (from < 0 || from >= _recipients.Count) return;
+        await MoveAsync(from.Value, targetIdx);
+    }
+
+    private async Task MoveAsync(int from, int to)
+    {
+        if (from == to) return;
+        if (from < 0 || from >= _recipients.Count) return;
+        if (to < 0 || to >= _recipients.Count) return;
+
+        var item = _recipients[from];
+        _recipients.RemoveAt(from);
+        _recipients.Insert(to, item);
+        ReorderInPlace();
+        await PersistAsync(HttpFactory.CreateClient("MasterSTI.Api"));
+    }
+
+    private async Task OnHandleKeyDownAsync(KeyboardEventArgs e, int idx)
+    {
+        if (e.Key == "ArrowUp" && idx > 0)
+            await MoveAsync(idx, idx - 1);
+        else if (e.Key == "ArrowDown" && idx < _recipients.Count - 1)
+            await MoveAsync(idx, idx + 1);
+    }
+
+    private async Task<bool> PersistAsync(HttpClient client)
+    {
+        try
+        {
+            var resp = await client.PostAsJsonAsync(
+                $"/api/documents/{Id}/recipients",
+                new SaveRecipientsRequest(_recipients.ToArray()));
+            if (!resp.IsSuccessStatusCode) return false;
+
+            var fresh = await resp.Content.ReadFromJsonAsync<IReadOnlyList<RecipientDto>>();
+            if (fresh is not null)
+            {
+                _recipients.Clear();
+                _recipients.AddRange(fresh.OrderBy(r => r.Order)
+                    .Select(r => new RecipientInput(r.Id, r.Email, r.Name, r.Order, r.Level)));
+            }
+            RefreshSystemMessage();
+            return true;
+        }
+        catch { return false; }
+    }
+
+    private async Task GoToFields()
+    {
+        if (_sending) return;
+        _sending = true;
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            if (_recipients.Count == 0)
+            {
+                var seed = DemoData.Signatories
+                    .Select(s => new RecipientInput(null, s.Email, s.Name, s.Order, s.Level))
+                    .ToArray();
+                await client.PostAsJsonAsync($"/api/documents/{Id}/recipients", new SaveRecipientsRequest(seed));
+            }
+            else
+            {
+                await PersistAsync(client);
+            }
+            Navigation.NavigateTo($"/documents/{Id}/fields");
+        }
+        catch (Exception ex)
+        {
+            _sendError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+
+    private async Task OpenQrAsync()
+    {
+        _showQr = true;
+        _qrPayload = null;
+        _qrError = null;
+        _walletStatus = "pending";
+        _walletState = null;
+        _qrCts?.Cancel();
+        _qrCts = new CancellationTokenSource();
+        StateHasChanged();
+
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var initResp = await client.PostAsJsonAsync(
+                "/api/wallet/auth",
+                new WalletAuthInitRequest(WalletAuthPurpose.Sign),
+                _qrCts.Token);
+
+            if (!initResp.IsSuccessStatusCode)
+            {
+                _qrError = "Nu s-a putut iniția semnarea cu wallet-ul.";
+                StateHasChanged();
+                return;
+            }
+
+            var init = await initResp.Content.ReadFromJsonAsync<InitiateWalletAuthResponse>(_qrCts.Token);
+            if (init is null)
+            {
+                _qrError = "Răspuns invalid de la server.";
+                StateHasChanged();
+                return;
+            }
+
+            _walletState = init.State;
+            _qrPayload = init.QrCode;
+            StateHasChanged();
+
+            await PollWalletAsync(init.State, _qrCts.Token);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _qrError = $"Eroare: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private async Task PollWalletAsync(string state, CancellationToken ct)
+    {
+        var client = HttpFactory.CreateClient("MasterSTI.Api");
+        while (!ct.IsCancellationRequested)
+        {
+            await Task.Delay(1500, ct);
+
+            WalletAuthStatusResponse? status;
+            try
+            {
+                status = await client.GetFromJsonAsync<WalletAuthStatusResponse>(
+                    $"/api/wallet/auth/{Uri.EscapeDataString(state)}", ct);
+            }
+            catch (OperationCanceledException) { return; }
+            catch { continue; }
+
+            if (status is null) continue;
+
+            _walletStatus = status.Status.ToLowerInvariant();
+            await InvokeAsync(StateHasChanged);
+
+            if (_walletStatus is "complete" or "expired" or "failed")
+                return;
+        }
+    }
+
+    private void CloseQr()
+    {
+        _qrCts?.Cancel();
+        _showQr = false;
+        StateHasChanged();
+    }
+
+    private void ToggleOption(int idx, ChangeEventArgs e)
+    {
+        var on = e.Value is bool b && b;
+        _options[idx] = _options[idx] with { On = on };
+    }
+
+    private static string Initials(string name)
+        => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]));
+
+    public void Dispose()
+    {
+        _qrCts?.Cancel();
+        _qrCts?.Dispose();
+    }
+}

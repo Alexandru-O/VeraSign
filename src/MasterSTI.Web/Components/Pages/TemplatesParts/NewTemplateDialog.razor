@@ -1,0 +1,203 @@
+@* NewTemplateDialog — modal for creating a template:
+   1) POST PDF to /api/documents/upload
+   2) POST /api/templates with FromDocumentId
+*@
+@inject IHttpClientFactory HttpClientFactory
+
+<div class="vs-modal__backdrop" @onclick="HandleClose">
+    <div class="vs-modal__box vs-modal__box--form" @onclick:stopPropagation="true">
+        <div class="vs-modal__head">
+            <div>
+                <div class="vs-modal__title">Șablon nou</div>
+                <div class="vs-modal__sub">Încarcă un PDF model și adaugă datele de bază.</div>
+            </div>
+            <button class="vs-modal__close" @onclick="HandleClose" aria-label="Închide" type="button">
+                <Icon Name="x" Size="16"/>
+            </button>
+        </div>
+
+        <div class="vs-modal__body vs-modal__body--form">
+            <Field Label="Fișier PDF" Required="true" Error="@_fileError">
+                <div class="vs-tpl-form__file">
+                    <InputFile id="vs-tpl-new-file" OnChange="HandleFileSelected" accept=".pdf,application/pdf" class="vs-tpl-form__file-hidden"/>
+                    <label for="vs-tpl-new-file" class="vs-tpl-form__file-btn">
+                        <Icon Name="upload" Size="14"/>
+                        <span>@(_selectedFile is null ? "Selectează PDF" : _selectedFile.Name)</span>
+                    </label>
+                    @if (_selectedFile is not null)
+                    {
+                        <span class="vs-tpl-form__file-hint">@FormatSize(_selectedFile.Size)</span>
+                    }
+                </div>
+            </Field>
+
+            <Field Label="Titlu" Required="true" Error="@_titleError">
+                <Input @bind-Value="_title" Placeholder="ex.: Contract de închiriere"/>
+            </Field>
+
+            <Field Label="Descriere">
+                <Input @bind-Value="_description" Placeholder="Scurtă descriere a șablonului"/>
+            </Field>
+
+            <Field Label="Categorie" Required="true">
+                <select class="vs-tpl-form__select" @bind="_category">
+                    @foreach (var c in TemplateConstants.CategoryOptions)
+                    {
+                        <option value="@c.Value">@c.Label</option>
+                    }
+                </select>
+            </Field>
+
+            <Field Label="Nivel implicit de semnătură" Required="true">
+                <select class="vs-tpl-form__select" @bind="_level">
+                    @foreach (var l in TemplateConstants.LevelOptions)
+                    {
+                        <option value="@l">@l</option>
+                    }
+                </select>
+            </Field>
+
+            @if (!string.IsNullOrEmpty(_apiError))
+            {
+                <div class="vs-tpl-form__error" role="alert">@_apiError</div>
+            }
+        </div>
+
+        <div class="vs-modal__foot">
+            <Btn Variant="ghost" OnClick="HandleClose">Anulează</Btn>
+            <Btn OnClick="HandleSubmit" Loading="_busy" Icon="plus">Creează șablon</Btn>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnCreated { get; set; }
+
+    private const long MaxSize = 50L * 1024 * 1024;
+
+    private IBrowserFile? _selectedFile;
+    private string _title = "";
+    private string _description = "";
+    private string _category = "Custom";
+    private string _level = "AdES";
+
+    private string? _fileError;
+    private string? _titleError;
+    private string? _apiError;
+    private bool _busy;
+
+    private async Task HandleClose()
+    {
+        if (OnClose.HasDelegate) await OnClose.InvokeAsync();
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        _fileError = null;
+        var file = e.File;
+        var extOk = (file.Name ?? "").EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+        var typeOk = (file.ContentType ?? "").Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+        if (!extOk || !typeOk)
+        {
+            _fileError = "Doar fișiere PDF sunt acceptate.";
+            _selectedFile = null;
+            return;
+        }
+        if (file.Size > MaxSize)
+        {
+            _fileError = "Fișierul depășește 50 MB.";
+            _selectedFile = null;
+            return;
+        }
+        _selectedFile = file;
+
+        // Auto-populate the title with the filename if the user hasn't typed anything.
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            var stem = Path.GetFileNameWithoutExtension(file.Name) ?? "";
+            _title = stem;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _fileError = null;
+        _titleError = null;
+        _apiError = null;
+
+        if (_selectedFile is null)
+        {
+            _fileError = "Selectează un PDF.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            _titleError = "Titlul este obligatoriu.";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+
+            // 1) Upload PDF.
+            using var content = new MultipartFormDataContent();
+            await using var stream = _selectedFile.OpenReadStream(MaxSize);
+            using var streamContent = new StreamContent(stream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            content.Add(streamContent, "file", _selectedFile.Name);
+
+            var uploadResp = await client.PostAsync("/api/documents/upload", content);
+            if (!uploadResp.IsSuccessStatusCode)
+            {
+                _apiError = $"Încărcarea PDF-ului a eșuat ({(int)uploadResp.StatusCode}).";
+                return;
+            }
+
+            var uploadBody = await uploadResp.Content.ReadFromJsonAsync<UploadResponse>();
+            if (uploadBody is null)
+            {
+                _apiError = "Răspuns invalid de la server după încărcarea PDF-ului.";
+                return;
+            }
+
+            // 2) Create template referencing the new document.
+            var createBody = new
+            {
+                Title = _title.Trim(),
+                Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
+                Category = _category,
+                FromDocumentId = (Guid?)uploadBody.DocumentId,
+                FieldsJson = (string?)null,
+                DefaultLevel = _level
+            };
+            var createResp = await client.PostAsJsonAsync("/api/templates", createBody);
+            if (!createResp.IsSuccessStatusCode)
+            {
+                _apiError = $"Crearea șablonului a eșuat ({(int)createResp.StatusCode}).";
+                return;
+            }
+
+            if (OnCreated.HasDelegate) await OnCreated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _apiError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:0.#} KB";
+        return $"{bytes / (1024.0 * 1024.0):0.#} MB";
+    }
+
+    private record UploadResponse(Guid DocumentId, string FileName, string Sha256Hash);
+}

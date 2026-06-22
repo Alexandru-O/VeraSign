@@ -1,0 +1,14 @@
+@page "/"
+@layout BlankLayout
+@inject NavigationManager Navigation
+@inject IAuthService Auth
+
+<PageTitle>VeraSign</PageTitle>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Demo: send authenticated users to dashboard, the rest to landing.
+        Navigation.NavigateTo(Auth.IsAuthenticated ? "/dashboard" : "/welcome", forceLoad: false);
+    }
+}

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    MasterSTI / VeraSign — non-color design tokens v2.
+    Mirrors design/prototype/tokens.css radii, shadow, motion + type scale.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=netstandard">
+
+    <!-- Radii (DIPs) — v2 spec -->
+    <x:Double x:Key="RadiusXs">4</x:Double>
+    <x:Double x:Key="RadiusSm">4</x:Double>
+    <x:Double x:Key="RadiusMd">8</x:Double>
+    <x:Double x:Key="RadiusLg">12</x:Double>
+    <x:Double x:Key="RadiusXl">16</x:Double>
+    <x:Double x:Key="RadiusPill">999</x:Double>
+
+    <!-- Border thickness baselines -->
+    <x:Double x:Key="BorderHairline">1</x:Double>
+
+    <!-- Motion -->
+    <x:Int32 x:Key="MotionDurFast">120</x:Int32>
+    <x:Int32 x:Key="MotionDurMs">200</x:Int32>
+
+    <!-- Typography sizes (matches Brand.jsx scales) -->
+    <x:Double x:Key="TextEyebrow">11</x:Double>
+    <x:Double x:Key="TextXs">12</x:Double>
+    <x:Double x:Key="TextSm">13</x:Double>
+    <x:Double x:Key="TextBase">14</x:Double>
+    <x:Double x:Key="TextMd">15</x:Double>
+    <x:Double x:Key="TextLg">18</x:Double>
+    <x:Double x:Key="TextXl">22</x:Double>
+    <x:Double x:Key="Text2xl">28</x:Double>
+    <x:Double x:Key="TextDisplay">32</x:Double>
+
+    <!-- Shadows (light variant) — flat one-layer approximation of CSS multi-layer -->
+    <Shadow x:Key="ShadowXs"
+            Brush="#0A0A0A"
+            Opacity="0.04"
+            Radius="2"
+            Offset="0,1" />
+    <Shadow x:Key="ShadowSm"
+            Brush="#0A0A0A"
+            Opacity="0.05"
+            Radius="3"
+            Offset="0,1" />
+    <Shadow x:Key="ShadowMd"
+            Brush="#0A0A0A"
+            Opacity="0.06"
+            Radius="12"
+            Offset="0,4" />
+    <Shadow x:Key="ShadowLg"
+            Brush="#0A0A0A"
+            Opacity="0.08"
+            Radius="32"
+            Offset="0,12" />
+
+</ResourceDictionary>

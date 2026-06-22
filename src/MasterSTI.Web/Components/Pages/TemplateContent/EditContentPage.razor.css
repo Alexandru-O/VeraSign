@@ -1,0 +1,276 @@
+/* EditContentPage v2 — split-view content editor (textarea) + PDF preview iframe.
+   Token-only restyle. */
+
+.vs-tpl-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: calc(100vh - 180px);
+}
+
+.vs-tpl-edit__split {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    min-height: 0;
+}
+
+@media (max-width: 1100px) {
+    .vs-tpl-edit__split { grid-template-columns: 1fr; }
+}
+
+.vs-tpl-edit__pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 600px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-sm);
+}
+
+.vs-tpl-edit__pane-head {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--bg-sunken);
+}
+
+.vs-tpl-edit__pane-head--sticky { position: sticky; top: 0; z-index: 1; }
+
+.vs-tpl-edit__pane-title { font-size: 14px; font-weight: 600; color: var(--fg); }
+.vs-tpl-edit__pane-sub   { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+
+.vs-tpl-edit__hint-bar {
+    padding: 10px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+}
+
+.vs-tpl-edit__editor-wrap {
+    flex: 1 1 auto;
+    display: flex;
+    padding: 0;
+    background: var(--bg-elev);
+    min-height: 0;
+}
+
+.vs-tpl-edit__editor {
+    flex: 1;
+    width: 100%;
+    padding: 16px 18px;
+    border: 0;
+    outline: none;
+    resize: none;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--fg);
+    background: var(--bg-elev);
+    box-sizing: border-box;
+}
+
+.vs-tpl-edit__pane-foot {
+    position: sticky;
+    bottom: 0;
+}
+
+.vs-tpl-edit__pane-foot {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-sunken);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.vs-tpl-edit__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--fg-muted);
+}
+
+.vs-tpl-edit__actions {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.vs-tpl-edit__error {
+    margin: 12px 18px 0 18px;
+    padding: 10px 14px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--r-md);
+    font-size: 13px;
+}
+
+.vs-tpl-edit__preview {
+    flex: 1 1 auto;
+    background: var(--bg-sunken);
+    display: flex;
+}
+
+.vs-tpl-edit__iframe {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--bg-sunken);
+}
+
+/* Skeleton */
+.vs-tpl-edit__loading { display: flex; flex-direction: column; gap: 10px; }
+.vs-tpl-edit__skel-bar {
+    height: 14px;
+    width: 60%;
+    background: var(--bg-sunken);
+    border-radius: var(--r-sm);
+    animation: vsTplShimmer 1.4s ease-in-out infinite;
+}
+.vs-tpl-edit__skel-bar--short { width: 30%; }
+
+/* Spinner */
+.vs-tpl-edit__spinner {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--r-pill);
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: vsTplEditSpin 700ms linear infinite;
+    display: inline-block;
+}
+
+@keyframes vsTplEditSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes vsTplShimmer {
+    0% { opacity: .55; }
+    50% { opacity: 1; }
+    100% { opacity: .55; }
+}
+
+/* Modals (re-declared for ::deep so the dialog can render here too) */
+::deep .vs-modal__backdrop {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--bg-inverse) 60%, transparent);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+::deep .vs-modal__box {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    max-width: 460px;
+    width: 100%;
+    overflow: hidden;
+    animation: slideUpEdit 240ms var(--ease);
+}
+::deep .vs-modal__box--form { max-width: 520px; }
+
+::deep .vs-modal__head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+}
+::deep .vs-modal__title { font-size: 15px; font-weight: 600; color: var(--fg); }
+::deep .vs-modal__sub   { font-size: 12px; color: var(--fg-muted); }
+::deep .vs-modal__close {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-pill);
+    background: var(--bg-sunken);
+    color: var(--fg);
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+::deep .vs-modal__body { padding: 24px; }
+::deep .vs-modal__body--form { display: flex; flex-direction: column; gap: 14px; }
+
+::deep .vs-modal__foot {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    background: var(--bg-sunken);
+}
+
+::deep .vs-tpl-form__file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+::deep .vs-tpl-form__file-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+::deep .vs-tpl-form__file-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--fg);
+    background: var(--bg-sunken);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--r-md);
+    cursor: pointer;
+}
+::deep .vs-tpl-form__file-hint { font-size: 12px; color: var(--fg-subtle); }
+
+::deep .vs-tpl-form__error {
+    padding: 10px 12px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--r-md);
+    font-size: 12px;
+}
+
+::deep .vs-tpl-replace__warn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+    border-radius: var(--r-md);
+    font-size: 12px;
+}
+
+@keyframes slideUpEdit {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}

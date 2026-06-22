@@ -1,0 +1,115 @@
+@* Dropdown — minimal v2 select.
+   Mirrors prototype/components/Brand.jsx Dropdown (lines 240-299).
+
+   Click-outside is handled by listening for blur on a wrapper button +
+   a tiny global mousedown listener registered via JS interop. *@
+
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="vs-dd" style="@_widthStyle" @ref="_root">
+    <button type="button"
+            class="vs-dd__toggle @(Open ? "vs-dd__toggle--open" : null)"
+            @onclick="ToggleOpen">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <Icon Name="@Icon" Size="14" Color="var(--fg-subtle)"/>
+        }
+        <span class="vs-dd__current @(_currentLabel is null ? "vs-dd__current--empty" : null)">
+            @(_currentLabel ?? Placeholder)
+        </span>
+        <Icon Name="chevron-down" Size="14" Color="var(--fg-subtle)"/>
+    </button>
+
+    @if (Open)
+    {
+        <div class="vs-dd__menu">
+            @foreach (var o in Options)
+            {
+                var isActive = o.Value == Value;
+                <button type="button"
+                        class="vs-dd__option @(isActive ? "vs-dd__option--active" : null)"
+                        @onclick="@(() => Select(o.Value))">
+                    <div class="vs-dd__option-text">
+                        <div>@o.Label</div>
+                        @if (!string.IsNullOrEmpty(o.Sub))
+                        {
+                            <div class="vs-dd__option-sub">@o.Sub</div>
+                        }
+                    </div>
+                    @if (isActive)
+                    {
+                        <Icon Name="check" Size="14" Color="var(--accent)"/>
+                    }
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    public sealed record Option(string Value, string Label, string? Sub = null);
+
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public IReadOnlyList<Option> Options { get; set; } = Array.Empty<Option>();
+    [Parameter] public string Placeholder { get; set; } = "Selectează";
+    [Parameter] public string? Icon { get; set; }
+    /// <summary>Width — number (px) or CSS string like "100%".</summary>
+    [Parameter] public string Width { get; set; } = "240px";
+
+    private bool Open { get; set; }
+    private ElementReference _root;
+    private DotNetObjectReference<Dropdown>? _dotnetRef;
+    private bool _outsideHooked;
+
+    private string _widthStyle => $"width:{Width};";
+
+    private string? _currentLabel => Options.FirstOrDefault(o => o.Value == Value)?.Label;
+
+    private async Task ToggleOpen()
+    {
+        Open = !Open;
+        if (Open && !_outsideHooked)
+        {
+            _dotnetRef ??= DotNetObjectReference.Create(this);
+            try
+            {
+                await JS.InvokeVoidAsync("verasignDropdown.attach", _root, _dotnetRef);
+                _outsideHooked = true;
+            }
+            catch (JSDisconnectedException) { /* ignore on prerender */ }
+            catch (JSException) { /* helper missing — fallback: Click-outside best-effort via blur */ }
+        }
+    }
+
+    private async Task Select(string val)
+    {
+        Value = val;
+        Open = false;
+        if (ValueChanged.HasDelegate)
+        {
+            await ValueChanged.InvokeAsync(val);
+        }
+    }
+
+    [JSInvokable]
+    public Task CloseFromJs()
+    {
+        Open = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_outsideHooked)
+            {
+                await JS.InvokeVoidAsync("verasignDropdown.detach", _root);
+            }
+        }
+        catch { /* ignore on circuit teardown */ }
+        _dotnetRef?.Dispose();
+    }
+}

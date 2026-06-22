@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Onboarding — port of design/MobileScreens.jsx MWelcome.
+    Hero: 3-card EUDI wallet stack with QES seal on the front card.
+    Persona-named greeting + role pill driven by WalletPersona (Phase 2).
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.OnboardingPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid>
+        <!-- Subtle radial halo (accent at 8% opacity), top-center, behind everything -->
+        <Border WidthRequest="420"
+                HeightRequest="420"
+                HorizontalOptions="Center"
+                VerticalOptions="Start"
+                TranslationY="-120"
+                InputTransparent="True"
+                StrokeThickness="0"
+                StrokeShape="Ellipse">
+            <Border.Background>
+                <RadialGradientBrush Center="0.5,0.5"
+                                     Radius="0.5">
+                    <GradientStop Offset="0.0"
+                                  Color="{AppThemeBinding Light=#241A1A1A, Dark=#24FAFAF9}" />
+                    <GradientStop Offset="0.65"
+                                  Color="#001A1A1A" />
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <ScrollView>
+            <Grid Padding="0"
+                  RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+
+            <!-- Row 0: Top bar — brand + eIDAS pill -->
+            <Grid Grid.Row="0"
+                  Padding="24,20,24,0"
+                  ColumnDefinitions="Auto,*,Auto"
+                  VerticalOptions="Center">
+                <controls:LogoView Grid.Column="0"
+                                   Size="18"
+                                   HorizontalOptions="Start"
+                                   VerticalOptions="Center" />
+
+                <Border Grid.Column="2"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 999"
+                        Padding="10,4">
+                    <HorizontalStackLayout Spacing="6"
+                                           VerticalOptions="Center">
+                        <Ellipse WidthRequest="5"
+                                 HeightRequest="5"
+                                 Fill="{AppThemeBinding Light={StaticResource SuccessLight}, Dark={StaticResource SuccessDark}}"
+                                 VerticalOptions="Center" />
+                        <Label x:Name="PersonaRolePill"
+                               Text="eIDAS 2.0"
+                               FontFamily="{StaticResource FontMono}"
+                               FontSize="10"
+                               CharacterSpacing="0.6"
+                               TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
+
+            <!-- Row 1: Hero — 3-card stack -->
+            <Grid Grid.Row="1"
+                  HeightRequest="240"
+                  Margin="0,36,0,8"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Center">
+
+                <!-- Back card — Card Sănătate, rotated -8deg, pushed left -->
+                <Border WidthRequest="200"
+                        HeightRequest="124"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 14"
+                        Rotation="-8"
+                        TranslationX="-44"
+                        TranslationY="16"
+                        Shadow="{StaticResource ShadowSm}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                    <VerticalStackLayout Padding="14,12"
+                                         Spacing="22">
+                        <Label Text="CARD SĂNĂTATE"
+                               FontFamily="{StaticResource FontMono}"
+                               FontSize="8"
+                               CharacterSpacing="0.8"
+                               TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}" />
+                        <BoxView WidthRequest="28"
+                                 HeightRequest="18"
+                                 CornerRadius="3"
+                                 Color="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}"
+                                 HorizontalOptions="Start" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Middle card — Permis Conducere, rotated +4deg, pushed right -->
+                <Border WidthRequest="220"
+                        HeightRequest="138"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 14"
+                        Rotation="4"
+                        TranslationX="40"
+                        TranslationY="8"
+                        Shadow="{StaticResource ShadowSm}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                    <VerticalStackLayout Padding="14,12"
+                                         Spacing="18">
+                        <Label Text="PERMIS CONDUCERE"
+                               FontFamily="{StaticResource FontMono}"
+                               FontSize="8"
+                               CharacterSpacing="0.8"
+                               TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}" />
+                        <BoxView WidthRequest="32"
+                                 HeightRequest="22"
+                                 CornerRadius="3"
+                                 Color="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}"
+                                 HorizontalOptions="Start" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Front card — PID Identitate (dark) with QES seal -->
+                <Grid WidthRequest="256"
+                      HeightRequest="160"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center">
+                    <Border BackgroundColor="{AppThemeBinding Light={StaticResource BgInverseLight}, Dark={StaticResource BgInverseDark}}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 16"
+                            Shadow="{StaticResource ShadowLg}">
+                        <Grid>
+                            <!-- Shimmer overlay (animated in code-behind) -->
+                            <Border x:Name="ShimmerOverlay"
+                                    InputTransparent="True"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0"
+                                                         EndPoint="1,0.3">
+                                        <GradientStop Offset="0.30"
+                                                      Color="#00FFFFFF" />
+                                        <GradientStop Offset="0.50"
+                                                      Color="#1FFFFFFF" />
+                                        <GradientStop Offset="0.70"
+                                                      Color="#00FFFFFF" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+
+                            <Grid Padding="16">
+                            <!-- Top-right EU stars -->
+                            <HorizontalStackLayout Spacing="3"
+                                                   HorizontalOptions="End"
+                                                   VerticalOptions="Start"
+                                                   Opacity="0.5">
+                                <Ellipse WidthRequest="4" HeightRequest="4" Fill="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                                <Ellipse WidthRequest="4" HeightRequest="4" Fill="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                                <Ellipse WidthRequest="4" HeightRequest="4" Fill="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                                <Ellipse WidthRequest="4" HeightRequest="4" Fill="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                            </HorizontalStackLayout>
+
+                            <!-- Header eyebrow -->
+                            <VerticalStackLayout Spacing="2"
+                                                 HorizontalOptions="Start"
+                                                 VerticalOptions="Start">
+                                <Label Text="EU DIGITAL IDENTITY"
+                                       FontFamily="{StaticResource FontMono}"
+                                       FontSize="9"
+                                       CharacterSpacing="1.0"
+                                       Opacity="0.5"
+                                       TextColor="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                                <Label Text="PID · România"
+                                       FontFamily="{StaticResource FontMono}"
+                                       FontSize="9"
+                                       CharacterSpacing="0.8"
+                                       Opacity="0.7"
+                                       TextColor="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                            </VerticalStackLayout>
+
+                            <!-- Footer: posesor + chip -->
+                            <Grid HorizontalOptions="Fill"
+                                  VerticalOptions="End"
+                                  ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Grid.Column="0"
+                                                     Spacing="2">
+                                    <Label Text="POSESOR"
+                                           FontFamily="{StaticResource FontMono}"
+                                           FontSize="8"
+                                           CharacterSpacing="1.0"
+                                           Opacity="0.5"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                                    <Label x:Name="HeroPosesorLabel"
+                                           Text=""
+                                           FontFamily="{StaticResource FontSans}"
+                                           FontSize="15"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                                    <Label x:Name="HeroSerialLabel"
+                                           Text=""
+                                           FontFamily="{StaticResource FontMono}"
+                                           FontSize="9"
+                                           Opacity="0.6"
+                                           TextColor="{AppThemeBinding Light={StaticResource FgInverseLight}, Dark={StaticResource FgInverseDark}}" />
+                                </VerticalStackLayout>
+
+                                <Border Grid.Column="1"
+                                        WidthRequest="28"
+                                        HeightRequest="22"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 4"
+                                        VerticalOptions="End">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0"
+                                                             EndPoint="1,1">
+                                            <GradientStop Offset="0.0"
+                                                          Color="{AppThemeBinding Light=#59FAFAF9, Dark=#591A1A1A}" />
+                                            <GradientStop Offset="1.0"
+                                                          Color="{AppThemeBinding Light=#26FAFAF9, Dark=#261A1A1A}" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Border WidthRequest="16"
+                                            HeightRequest="12"
+                                            Stroke="{AppThemeBinding Light=#4DFAFAF9, Dark=#4D1A1A1A}"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 2"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                </Border>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- QES seal — bottom-right overlapping circle -->
+                    <Border WidthRequest="64"
+                            HeightRequest="64"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                            Stroke="{AppThemeBinding Light={StaticResource BgInverseLight}, Dark={StaticResource BgInverseDark}}"
+                            StrokeThickness="2"
+                            StrokeShape="Ellipse"
+                            HorizontalOptions="End"
+                            VerticalOptions="End"
+                            TranslationX="16"
+                            TranslationY="16">
+                        <VerticalStackLayout VerticalOptions="Center"
+                                             HorizontalOptions="Center"
+                                             Spacing="2">
+                            <Label Text="QES"
+                                   FontFamily="{StaticResource FontSans}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                   HorizontalOptions="Center" />
+                            <Label Text="VERIFIED"
+                                   FontFamily="{StaticResource FontMono}"
+                                   FontSize="7"
+                                   CharacterSpacing="0.8"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Row 2: Headline + subtitle (persona-named, Phase 2) -->
+            <VerticalStackLayout Grid.Row="2"
+                                 Padding="28,8,28,0"
+                                 Spacing="12">
+                <Label x:Name="WelcomeHeadline"
+                       FontSize="30"
+                       FontFamily="{StaticResource FontSans}"
+                       FontAttributes="Bold"
+                       LineHeight="1.08"
+                       CharacterSpacing="-0.9">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span x:Name="WelcomeGreetingSpan"
+                                  Text="Bun venit,"
+                                  TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                            <Span Text="&#10;" />
+                            <Span x:Name="WelcomeNameSpan"
+                                  Text=""
+                                  TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+
+                <Label Text="Identitate prin EU Digital Identity Wallet. Semnături calificate cu valoare juridică în 27 de state."
+                       FontFamily="{StaticResource FontSans}"
+                       FontSize="14"
+                       LineHeight="1.55"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+            </VerticalStackLayout>
+
+            <!-- Row 3: Trust strip -->
+            <Grid Grid.Row="3"
+                  Padding="28,20,28,16"
+                  ColumnDefinitions="*,*,*"
+                  ColumnSpacing="8">
+
+                <Border Grid.Column="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="8,10">
+                    <VerticalStackLayout Spacing="6"
+                                         HorizontalOptions="Center">
+                        <controls:IconView Name="shield-check"
+                                           Size="14"
+                                           TintColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                                           HorizontalOptions="Center" />
+                        <Label Text="eIDAS 2.0"
+                               FontFamily="{StaticResource FontMono}"
+                               FontSize="10"
+                               CharacterSpacing="0.4"
+                               TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Grid.Column="1"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="8,10">
+                    <VerticalStackLayout Spacing="6"
+                                         HorizontalOptions="Center">
+                        <controls:IconView Name="eu"
+                                           Size="14"
+                                           TintColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                                           HorizontalOptions="Center" />
+                        <Label Text="27 state UE"
+                               FontFamily="{StaticResource FontMono}"
+                               FontSize="10"
+                               CharacterSpacing="0.4"
+                               TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Grid.Column="2"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="8,10">
+                    <VerticalStackLayout Spacing="6"
+                                         HorizontalOptions="Center">
+                        <controls:IconView Name="lock"
+                                           Size="14"
+                                           TintColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                                           HorizontalOptions="Center" />
+                        <Label Text="End-to-end"
+                               FontFamily="{StaticResource FontMono}"
+                               FontSize="10"
+                               CharacterSpacing="0.4"
+                               TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <!-- Row 4: CTA + terms (Phase 2: single Continuă, no picker) -->
+            <VerticalStackLayout Grid.Row="4"
+                                 Padding="24,8,24,24"
+                                 Spacing="8">
+                <controls:BtnView x:Name="ContinueBtn"
+                                  Text="Continuă"
+                                  Variant="primary"
+                                  Size="lg"
+                                  Full="True"
+                                  IconRight="arrow-right"
+                                  Clicked="OnContinueClicked" />
+                <Label Text="Continuând accepți Termenii și Politica de confidențialitate"
+                       FontFamily="{StaticResource FontMono}"
+                       FontSize="10"
+                       CharacterSpacing="0.4"
+                       Margin="0,6,0,0"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}" />
+                </VerticalStackLayout>
+            </Grid>
+        </ScrollView>
+    </Grid>
+
+</ContentPage>

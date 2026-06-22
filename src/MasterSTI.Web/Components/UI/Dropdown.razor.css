@@ -1,0 +1,84 @@
+/* Dropdown — minimal v2 select. */
+
+.vs-dd {
+    position: relative;
+    font-family: var(--font-sans);
+    display: inline-block;
+}
+
+.vs-dd__toggle {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    background: var(--bg-elev);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    transition: border-color var(--t-fast) var(--ease),
+                box-shadow var(--t-fast) var(--ease);
+}
+
+.vs-dd__toggle:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+
+.vs-dd__toggle--open {
+    border-color: var(--accent);
+    box-shadow: var(--sh-focus);
+}
+
+.vs-dd__current {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vs-dd__current--empty { color: var(--fg-subtle); }
+
+.vs-dd__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-lg);
+    padding: 4px;
+    z-index: 100;
+    max-height: 280px;
+    overflow: auto;
+    animation: slideUp 120ms var(--ease);
+}
+
+.vs-dd__option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--fg);
+    background: transparent;
+    border: none;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    text-align: left;
+}
+
+.vs-dd__option:hover { background: var(--bg-sunken); }
+
+.vs-dd__option--active {
+    background: var(--bg-sunken);
+    font-weight: 500;
+}
+
+.vs-dd__option-text { flex: 1; }
+.vs-dd__option-sub  { font-size: 12px; color: var(--fg-subtle); margin-top: 2px; }

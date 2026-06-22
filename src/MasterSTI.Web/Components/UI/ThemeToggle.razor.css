@@ -1,0 +1,19 @@
+/* ThemeToggle — sun/moon icon button. */
+
+.vs-theme-toggle {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    color: var(--fg);
+    transition: background var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease);
+}
+
+.vs-theme-toggle:hover { background: var(--bg-sunken); }
+.vs-theme-toggle:focus-visible { outline: none; box-shadow: var(--sh-focus); }

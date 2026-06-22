@@ -1,0 +1,385 @@
+/* Documents listing page — search + filter chips + paged table. */
+
+.vs-docs {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ---- Filters ---- */
+.vs-docs__filters {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.vs-docs__search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    max-width: 420px;
+}
+
+.vs-docs__search-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: var(--sh-focus);
+}
+
+.vs-docs__search {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 0;
+    font-size: 13px;
+    color: var(--fg);
+    outline: none;
+    font-family: inherit;
+}
+
+.vs-docs__search::placeholder { color: var(--fg-subtle); }
+
+.vs-docs__chip-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vs-docs__chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vs-docs__chip {
+    appearance: none;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease),
+                color var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease);
+}
+
+.vs-docs__chip:hover:not(.is-active) {
+    background: var(--bg-elev);
+    color: var(--fg);
+    border-color: var(--border-strong);
+}
+
+.vs-docs__chip:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+
+.vs-docs__chip.is-active {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+}
+
+/* ---- Panel + table ---- */
+.vs-docs__panel {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    min-height: 200px;
+}
+
+.vs-docs__table { width: 100%; border-collapse: collapse; }
+.vs-docs__table thead tr { background: var(--bg-sunken); }
+.vs-docs__table th {
+    padding: 10px 20px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.vs-docs__th-right { text-align: right; }
+.vs-docs__table tbody tr { border-top: 1px solid var(--border-subtle); }
+.vs-docs__table tbody tr:hover { background: var(--bg-sunken); }
+.vs-docs__table td {
+    padding: 14px 20px;
+    text-align: left;
+    font-size: 13px;
+    color: var(--fg);
+    vertical-align: middle;
+}
+.vs-docs__td-strong { font-weight: 500; }
+.vs-docs__td-muted  { color: var(--fg-muted); }
+.vs-docs__td-right  { text-align: right; }
+.vs-docs__td-mono   { font-family: var(--font-mono); color: var(--fg-muted); }
+
+.vs-docs__name-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.vs-docs__name-link:hover,
+.vs-docs__name-link:focus-visible {
+    color: var(--ro-blue-700);
+    border-bottom-color: currentColor;
+    outline: none;
+}
+
+.vs-docs__row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.vs-docs__download {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--border);
+    background: var(--bg-sunken);
+    color: var(--fg);
+    font-size: 12px;
+    text-decoration: none;
+    transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.vs-docs__download:hover { background: var(--bg-elev); border-color: var(--border-strong); }
+.vs-docs__download:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+
+/* ---- Empty / error / skeleton ---- */
+.vs-docs__error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger);
+    border-radius: var(--r-md);
+    color: var(--danger);
+    font-size: 13px;
+}
+
+.vs-docs__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 48px 24px;
+    color: var(--fg-muted);
+    text-align: center;
+}
+
+.vs-docs__empty p { margin: 0; font-size: 13px; }
+
+.vs-docs__skeleton-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.vs-docs__skeleton-row {
+    height: 48px;
+    border-top: 1px solid var(--border-subtle);
+    background: linear-gradient(
+        90deg,
+        var(--bg-elev) 0%,
+        var(--bg-sunken) 50%,
+        var(--bg-elev) 100%);
+    background-size: 200% 100%;
+    animation: vs-docs-shimmer 1.4s var(--ease) infinite;
+}
+.vs-docs__skeleton-row:first-child { border-top: none; }
+
+@keyframes vs-docs-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ---- Pager ---- */
+.vs-docs__pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 4px;
+    flex-wrap: wrap;
+}
+
+.vs-docs__pager-info {
+    font-size: 12px;
+    color: var(--fg-muted);
+}
+
+.vs-docs__pager-buttons {
+    display: inline-flex;
+    gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vs-docs__chip { transition: none; }
+    .vs-docs__skeleton-row { animation: none; }
+}
+
+@media (max-width: 720px) {
+    .vs-docs__table th:nth-child(2),
+    .vs-docs__table td:nth-child(2),
+    .vs-docs__table th:nth-child(5),
+    .vs-docs__table td:nth-child(5) { display: none; }
+}
+
+/* ---- Row actions — danger tint for ghost Btn variant ----
+   Reminder / Cancel / Delete render as <Btn Variant="ghost"> so they share
+   the same ghost-pill shape as "Vezi". This class colors Cancel + Delete
+   text + icon red. ::deep is required because the <button> is rendered
+   inside the Btn component's CSS scope, not DocumentsList's. */
+.vs-docs ::deep .vs-docs__btn-danger { color: var(--danger); }
+.vs-docs ::deep .vs-docs__btn-danger:hover:not(:disabled) {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+/* ---- Cancel confirm modal ---- */
+.vs-docs__modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 12, 24, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: vs-docs-fade var(--t-md) var(--ease);
+}
+
+.vs-docs__modal {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-lg);
+    padding: 22px 24px;
+    max-width: 460px;
+    width: 92%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: vs-docs-slide-up var(--t-md) var(--ease);
+    position: relative;
+}
+
+.vs-docs__modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.vs-docs__modal-close:hover {
+    background: var(--bg-sunken);
+    color: var(--fg);
+}
+
+.vs-docs__modal-close:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--sh-focus);
+}
+
+.vs-docs__modal-close:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.vs-docs__modal-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.vs-docs__modal-body {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--fg-muted);
+}
+
+.vs-docs__modal-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fg-muted);
+}
+
+.vs-docs__modal-textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-sunken);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    resize: vertical;
+}
+
+.vs-docs__modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+@keyframes vs-docs-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes vs-docs-slide-up {
+    from { transform: translateY(12px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+/* ---- Toast ---- */
+.vs-docs__toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-md);
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    font-size: 13px;
+    z-index: 120;
+    animation: vs-docs-slide-up var(--t-md) var(--ease);
+}
+
+.vs-docs__toast--success { border-left: 3px solid var(--success); }
+.vs-docs__toast--danger  { border-left: 3px solid var(--danger); }

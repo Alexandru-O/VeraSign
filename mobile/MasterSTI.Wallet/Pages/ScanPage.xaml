@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    ScanPage — re-styled to match QRPairScreen prototype. Camera scan logic
+    in code-behind preserved. Corner brackets + animated target square over
+    the live camera feed.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.ScanPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{StaticResource RoBlue900}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="20,56,20,0">
+            <Border Grid.Column="0"
+                    BackgroundColor="#14FFFFFF"
+                    StrokeThickness="0"
+                    WidthRequest="36"
+                    HeightRequest="36"
+                    StrokeShape="RoundRectangle 18">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCloseTapped" />
+                </Border.GestureRecognizers>
+                <controls:IconView Name="x"
+                                   Size="18"
+                                   TintColor="White"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+            </Border>
+            <Label Grid.Column="1"
+                   Text="Scanează QR"
+                   FontSize="15"
+                   FontFamily="{StaticResource FontSansMedium}"
+                   TextColor="White"
+                   VerticalTextAlignment="Center" />
+        </Grid>
+
+        <VerticalStackLayout Grid.Row="1"
+                             Padding="28,24,28,0"
+                             Spacing="8">
+            <Label Text="Asociază cu desktopul"
+                   FontFamily="{StaticResource FontSerif}"
+                   FontSize="26"
+                   TextColor="White"
+                   LineHeight="1.1" />
+            <Label Text="Deschide VeraSign pe web și alege „Conectează telefon”. Scanează codul afișat."
+                   FontSize="13"
+                   TextColor="{StaticResource RoBlue200}"
+                   LineHeight="1.5" />
+        </VerticalStackLayout>
+
+        <!-- Camera viewport with corner-bracket overlay -->
+        <Grid Grid.Row="2"
+              Padding="32"
+              VerticalOptions="Center"
+              HorizontalOptions="Center">
+            <Border BackgroundColor="#0AFFFFFF"
+                    StrokeThickness="0"
+                    WidthRequest="260"
+                    HeightRequest="260"
+                    StrokeShape="RoundRectangle 24">
+                <Grid>
+                    <zxing:CameraBarcodeReaderView x:Name="BarcodeReader"
+                                                   BarcodesDetected="OnBarcodesDetected"
+                                                   IsDetecting="True" />
+                    <!-- Corners -->
+                    <BoxView Color="{StaticResource Gold300}" HeightRequest="3" WidthRequest="40" HorizontalOptions="Start" VerticalOptions="Start" />
+                    <BoxView Color="{StaticResource Gold300}" WidthRequest="3" HeightRequest="40" HorizontalOptions="Start" VerticalOptions="Start" />
+                    <BoxView Color="{StaticResource Gold300}" HeightRequest="3" WidthRequest="40" HorizontalOptions="End"   VerticalOptions="Start" />
+                    <BoxView Color="{StaticResource Gold300}" WidthRequest="3" HeightRequest="40" HorizontalOptions="End"   VerticalOptions="Start" />
+                    <BoxView Color="{StaticResource Gold300}" HeightRequest="3" WidthRequest="40" HorizontalOptions="Start" VerticalOptions="End" />
+                    <BoxView Color="{StaticResource Gold300}" WidthRequest="3" HeightRequest="40" HorizontalOptions="Start" VerticalOptions="End" />
+                    <BoxView Color="{StaticResource Gold300}" HeightRequest="3" WidthRequest="40" HorizontalOptions="End"   VerticalOptions="End" />
+                    <BoxView Color="{StaticResource Gold300}" WidthRequest="3" HeightRequest="40" HorizontalOptions="End"   VerticalOptions="End" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Hint -->
+        <Label Grid.Row="3"
+               x:Name="HintLabel"
+               Text="Îndreaptă camera spre un cod QR openid4vp://"
+               FontSize="13"
+               TextColor="{StaticResource RoBlue200}"
+               HorizontalTextAlignment="Center"
+               Padding="28,0,28,28" />
+    </Grid>
+
+</ContentPage>

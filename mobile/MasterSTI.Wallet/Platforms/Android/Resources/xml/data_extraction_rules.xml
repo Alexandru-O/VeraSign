@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Issue #66 — deny-all backup posture for VeraSign wallet (API 31+).
+  Older devices honour android:allowBackup="false" instead.
+
+  cloud-backup: blocks Google account / Auto Backup.
+  device-transfer: blocks D2D (e.g. Pixel cable transfer) from carrying PID + session.
+-->
+<data-extraction-rules>
+  <cloud-backup>
+    <exclude domain="root" />
+    <exclude domain="file" />
+    <exclude domain="database" />
+    <exclude domain="sharedpref" />
+    <exclude domain="external" />
+  </cloud-backup>
+  <device-transfer>
+    <exclude domain="root" />
+    <exclude domain="file" />
+    <exclude domain="database" />
+    <exclude domain="sharedpref" />
+    <exclude domain="external" />
+  </device-transfer>
+</data-extraction-rules>

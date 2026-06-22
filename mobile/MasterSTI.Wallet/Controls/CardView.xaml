@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    CardView v2 — surface elev with RadiusLg + hairline border.
+    Theme-aware via AppThemeBinding. Inherits Border so the user-supplied
+    child slots into Border.Content directly (no broken Content-shadow pattern).
+-->
+<Border xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+        x:Class="MasterSTI.Wallet.Controls.CardView"
+        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+        StrokeThickness="1"
+        Padding="20"
+        StrokeShape="RoundRectangle 12" />

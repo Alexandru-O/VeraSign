@@ -1,0 +1,112 @@
+@page "/signed/{signedDocumentId:guid}"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+@inject UiConfig UiConfig
+
+<PageTitle>VeraSign · Document semnat</PageTitle>
+
+<h1>Document semnat</h1>
+
+@if (_loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Se încarcă...</span></div>
+}
+else if (_info is null)
+{
+    <div class="alert alert-danger">
+        Documentul semnat nu a putut fi încărcat.
+        @if (_error is not null) { <div class="small mt-1">@_error</div> }
+    </div>
+    <a href="/documents/upload" class="btn btn-outline-secondary">Încarcă document nou</a>
+}
+else
+{
+    if (_info.IsIntegrityValid)
+    {
+        <div class="alert alert-success d-flex align-items-center gap-2">
+            <span class="bi bi-patch-check-fill fs-4"></span>
+            <div>
+                <strong>Document semnat și verificat cu succes.</strong><br />
+                Nivel PAdES: <span class="badge bg-success">@_info.PadesLevel</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <span class="bi bi-exclamation-triangle-fill fs-4"></span>
+            <div>
+                <strong>Documentul este semnat, dar verificarea integrității a eșuat.</strong><br />
+                Nivel PAdES: <span class="badge bg-warning text-dark">@_info.PadesLevel</span>
+            </div>
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Semnat la</dt>
+                <dd class="col-sm-9">@(_info.SigningTime?.ToString("u") ?? "indisponibil")</dd>
+
+                <dt class="col-sm-3">Nivel PAdES</dt>
+                <dd class="col-sm-9"><span class="badge bg-secondary">@_info.PadesLevel</span></dd>
+
+                <dt class="col-sm-3">ID document</dt>
+                <dd class="col-sm-9 font-monospace small">@SignedDocumentId</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-primary" href="@GetDownloadUrl()">
+            <span class="bi bi-download me-1"></span>Descarcă PDF semnat
+        </a>
+        <a class="btn btn-outline-info" href="/signed/@SignedDocumentId/validate">
+            <span class="bi bi-check-circle me-1"></span>Validează semnătura
+        </a>
+        <a class="btn btn-outline-secondary" href="/documents/upload">
+            Încarcă document nou
+        </a>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid SignedDocumentId { get; set; }
+
+    private SignedDocInfo? _info;
+    private string? _error;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            _info = await client.GetFromJsonAsync<SignedDocInfo>($"/api/signed-documents/{SignedDocumentId}/validate");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _info = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string GetDownloadUrl() =>
+        $"{UiConfig.ApiBaseUrl.TrimEnd('/')}/api/signed-documents/{SignedDocumentId}/download";
+
+    private record SignedDocInfo(
+        Guid SignedDocumentId,
+        bool IsIntegrityValid,
+        bool HasTimestamp,
+        bool HasLtv,
+        string SignerSubject,
+        string PadesLevel,
+        DateTime? SigningTime,
+        DateTime? TimestampTime,
+        string RawReport);
+}

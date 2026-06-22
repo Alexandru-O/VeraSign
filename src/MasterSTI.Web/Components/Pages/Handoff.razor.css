@@ -1,0 +1,128 @@
+.vs-handoff {
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+}
+
+.vs-handoff__brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--ro-blue-900);
+    margin-bottom: 32px;
+}
+
+.vs-handoff__dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--ro-blue-900);
+    display: grid;
+    place-items: center;
+}
+
+.vs-handoff__dot-inner {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--gold-400);
+}
+
+.vs-handoff__card {
+    max-width: 480px;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-md);
+    padding: 32px;
+    text-align: center;
+}
+
+.vs-handoff__card h1 {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    margin: 0 0 16px;
+    color: var(--ro-blue-900);
+}
+
+.vs-handoff__doc {
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 16px;
+    margin: 16px 0 20px;
+}
+
+.vs-handoff__doc-name {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-strong);
+    word-break: break-word;
+}
+
+.vs-handoff__doc-meta {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.vs-handoff__copy {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+    margin: 0 0 20px;
+}
+
+.vs-handoff__cta {
+    display: inline-block;
+    background: var(--ro-blue-900);
+    color: white;
+    padding: 12px 24px;
+    border-radius: var(--r-md);
+    text-decoration: none;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 20px;
+}
+
+.vs-handoff__cta:hover {
+    background: var(--ro-blue-700);
+}
+
+.vs-handoff__qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.vs-handoff__qr-cap {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.vs-handoff__muted {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.vs-handoff__expiry {
+    margin-top: 20px;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 12px;
+}

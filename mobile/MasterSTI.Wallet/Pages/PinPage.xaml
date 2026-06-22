@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    PIN — SAD entry screen (CSC v2 §11.5). Opened only when biometric is
+    unavailable / refused on ConsentPage (ADR-0007: biometric primary, PIN
+    fallback). Renders the DTBS hex prefix above the keypad so the user
+    sees what they are signing.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.PinPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid>
+        <Grid RowDefinitions="Auto,*,Auto"
+              Padding="0,52,0,0">
+
+            <!-- Top bar -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="Auto,*"
+                  ColumnSpacing="12"
+                  Padding="20,0,20,12">
+                <Border Grid.Column="0"
+                        BackgroundColor="Transparent"
+                        StrokeThickness="0"
+                        WidthRequest="36"
+                        HeightRequest="36"
+                        StrokeShape="RoundRectangle 18">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackTapped" />
+                    </Border.GestureRecognizers>
+                    <controls:IconView Name="arrow-left"
+                                       Size="20"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                </Border>
+                <Label Grid.Column="1"
+                       Text="Cod PIN"
+                       FontSize="15"
+                       FontFamily="{StaticResource FontSansSemiBold}"
+                       TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                       VerticalTextAlignment="Center" />
+            </Grid>
+
+            <!-- Title + DTBS prefix + dots -->
+            <VerticalStackLayout Grid.Row="1"
+                                 Spacing="8"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Padding="24">
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}"
+                        StrokeThickness="0"
+                        WidthRequest="56"
+                        HeightRequest="56"
+                        StrokeShape="RoundRectangle 16"
+                        HorizontalOptions="Center">
+                    <controls:IconView Name="lock"
+                                       Size="22"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                </Border>
+                <Label Text="Introdu codul PIN"
+                       FontSize="18"
+                       FontFamily="{StaticResource FontSansSemiBold}"
+                       TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                       HorizontalOptions="Center"
+                       Margin="0,16,0,4" />
+                <Label Text="Codul autorizează cheia ta calificată la QTSP."
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                       HorizontalTextAlignment="Center"
+                       MaximumWidthRequest="280"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,16" />
+
+                <!-- DTBS prefix: first 12 hex chars of the document hash, formatted
+                     XXXX · XXXX · XXXX. Empty/hidden when query param is missing. -->
+                <Label x:Name="DtbsHashLabel"
+                       Text=""
+                       IsVisible="False"
+                       FontSize="13"
+                       FontFamily="GeistMono"
+                       TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,16" />
+
+                <HorizontalStackLayout x:Name="DotRow"
+                                       Spacing="10"
+                                       HorizontalOptions="Center">
+                    <Border x:Name="Dot0"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                            BackgroundColor="Transparent"
+                            StrokeThickness="2" WidthRequest="14" HeightRequest="14"
+                            StrokeShape="RoundRectangle 7" />
+                    <Border x:Name="Dot1"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                            BackgroundColor="Transparent"
+                            StrokeThickness="2" WidthRequest="14" HeightRequest="14"
+                            StrokeShape="RoundRectangle 7" />
+                    <Border x:Name="Dot2"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                            BackgroundColor="Transparent"
+                            StrokeThickness="2" WidthRequest="14" HeightRequest="14"
+                            StrokeShape="RoundRectangle 7" />
+                    <Border x:Name="Dot3"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                            BackgroundColor="Transparent"
+                            StrokeThickness="2" WidthRequest="14" HeightRequest="14"
+                            StrokeShape="RoundRectangle 7" />
+                    <Border x:Name="Dot4"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                            BackgroundColor="Transparent"
+                            StrokeThickness="2" WidthRequest="14" HeightRequest="14"
+                            StrokeShape="RoundRectangle 7" />
+                    <Border x:Name="Dot5"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                            BackgroundColor="Transparent"
+                            StrokeThickness="2" WidthRequest="14" HeightRequest="14"
+                            StrokeShape="RoundRectangle 7" />
+                </HorizontalStackLayout>
+                <Label x:Name="LockoutLabel"
+                       IsVisible="False"
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light={StaticResource DangerLight}, Dark={StaticResource DangerDark}}"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,12,0,0" />
+            </VerticalStackLayout>
+
+            <!-- Keypad -->
+            <Grid x:Name="KeypadGrid"
+                  Grid.Row="2"
+                  ColumnDefinitions="*,*,*"
+                  RowDefinitions="56,56,56,56"
+                  ColumnSpacing="8"
+                  RowSpacing="8"
+                  Padding="16,0,16,32">
+
+                <Border Grid.Column="0" Grid.Row="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="1" />
+                    </Border.GestureRecognizers>
+                    <Label Text="1" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="1" Grid.Row="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="2" />
+                    </Border.GestureRecognizers>
+                    <Label Text="2" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="2" Grid.Row="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="3" />
+                    </Border.GestureRecognizers>
+                    <Label Text="3" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="0" Grid.Row="1"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="4" />
+                    </Border.GestureRecognizers>
+                    <Label Text="4" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="1" Grid.Row="1"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="5" />
+                    </Border.GestureRecognizers>
+                    <Label Text="5" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="2" Grid.Row="1"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="6" />
+                    </Border.GestureRecognizers>
+                    <Label Text="6" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="0" Grid.Row="2"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="7" />
+                    </Border.GestureRecognizers>
+                    <Label Text="7" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="1" Grid.Row="2"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="8" />
+                    </Border.GestureRecognizers>
+                    <Label Text="8" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="2" Grid.Row="2"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="9" />
+                    </Border.GestureRecognizers>
+                    <Label Text="9" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <!-- bottom row: blank, 0, delete -->
+                <Border Grid.Column="1" Grid.Row="3"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnKeyTapped" CommandParameter="0" />
+                    </Border.GestureRecognizers>
+                    <Label Text="0" FontSize="22" FontFamily="{StaticResource FontSansMedium}"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </Border>
+                <Border Grid.Column="2" Grid.Row="3"
+                        BackgroundColor="Transparent"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 8">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnDeleteTapped" />
+                    </Border.GestureRecognizers>
+                    <controls:IconView Name="x"
+                                       Size="20"
+                                       TintColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Busy overlay shown while orchestrator drives Prepare + Sign. -->
+        <Grid x:Name="BusyOverlay"
+              IsVisible="False"
+              BackgroundColor="#A0000000">
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="12">
+                <ActivityIndicator IsRunning="True" Color="White" />
+                <Label Text="Se semnează…"
+                       TextColor="White"
+                       FontSize="14"
+                       FontFamily="{StaticResource FontSansMedium}"
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+
+</ContentPage>

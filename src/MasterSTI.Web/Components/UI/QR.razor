@@ -1,0 +1,45 @@
+@* QR — renders a PNG QR code as a base64 data URL.
+   PNG scales reliably under CSS width/height. SvgQRCode output omits a viewBox so it
+   doesn't scale beyond its intrinsic pixel size in some browsers. *@
+
+@using QRCoder
+
+<div class="vs-qr" style="@_style">
+    @if (string.IsNullOrEmpty(Value) || _dataUrl is null)
+    {
+        <div class="vs-qr__placeholder" aria-label="No QR data"></div>
+    }
+    else
+    {
+        <img src="@_dataUrl" alt="QR" width="@Size" height="@Size"/>
+    }
+</div>
+
+@code {
+    /// <summary>Payload encoded into the QR code.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Render size in pixels (square).</summary>
+    [Parameter] public int Size { get; set; } = 180;
+
+    /// <summary>QRCoder ECC level. Default Q = ~25% redundancy.</summary>
+    [Parameter] public QRCodeGenerator.ECCLevel Ecc { get; set; } = QRCodeGenerator.ECCLevel.Q;
+
+    private string? _dataUrl;
+    private string _style => $"width:{Size}px;height:{Size}px;";
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrEmpty(Value))
+        {
+            _dataUrl = null;
+            return;
+        }
+
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(Value, Ecc);
+        var pngQr = new PngByteQRCode(data);
+        var bytes = pngQr.GetGraphic(pixelsPerModule: 10);
+        _dataUrl = $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
+    }
+}

@@ -1,0 +1,69 @@
+@inject IHttpClientFactory HttpFactory
+@inject IJSRuntime JS
+@inject ILogger<SignedDocDownload> Logger
+
+@* Authenticated download trigger for `/api/signed-documents/{id}/download`.
+   A plain <a target="_blank"> hits the Web origin (no /api/* there) or the
+   API origin without the circuit's JWT — both 404/401. This component
+   fetches bytes through the circuit's HttpClient (ApiBearerHandler stamps
+   the JWT) and hands them to a JS blob-URL trigger so the browser save
+   dialog opens client-side. *@
+
+<button type="button"
+        class="@FinalClass"
+        disabled="@_busy"
+        aria-label="@(Label ?? "Descarcă PDF semnat")"
+        @onclick="DownloadAsync">
+    <Icon Name="@(_busy ? "loader" : "download")" Size="14"/>
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <span>@Label</span>
+    }
+</button>
+
+@code {
+    [Parameter, EditorRequired] public Guid SignedDocumentId { get; set; }
+    [Parameter] public string? FileName { get; set; }
+    [Parameter] public string? Label { get; set; } = "Descarcă";
+    [Parameter] public string CssClass { get; set; } = "vs-signed-download";
+
+    private bool _busy;
+
+    private string FinalClass => _busy ? $"{CssClass} is-busy" : CssClass;
+
+    private async Task DownloadAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        StateHasChanged();
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            using var resp = await client.GetAsync($"/api/signed-documents/{SignedDocumentId}/download");
+            if (!resp.IsSuccessStatusCode)
+            {
+                Logger.LogWarning("Signed download failed: {Status} for {SignedDocumentId}",
+                    (int)resp.StatusCode, SignedDocumentId);
+                return;
+            }
+
+            var bytes = await resp.Content.ReadAsByteArrayAsync();
+            var name = FileName
+                ?? resp.Content.Headers.ContentDisposition?.FileNameStar
+                ?? resp.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                ?? $"signed_{SignedDocumentId}.pdf";
+
+            var b64 = Convert.ToBase64String(bytes);
+            await JS.InvokeVoidAsync("verasignPdfViewer.triggerDownload", b64, name, "application/pdf");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Signed download error for {SignedDocumentId}", SignedDocumentId);
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+}

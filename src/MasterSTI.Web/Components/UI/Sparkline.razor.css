@@ -1,0 +1,20 @@
+/* Sparkline — 7-day uptime strip. */
+
+.vs-spark {
+    display: inline-block;
+    line-height: 0;
+    width: 100%;
+    max-width: 168px;
+}
+
+.vs-spark__svg {
+    width: 100%;
+    height: 12px;
+    display: block;
+}
+
+.vs-spark__cell { shape-rendering: crispEdges; }
+.vs-spark__cell--ok   { fill: var(--success); }
+.vs-spark__cell--warn { fill: var(--warning); }
+.vs-spark__cell--err  { fill: var(--danger); }
+.vs-spark__cell--na   { fill: var(--border-subtle); }

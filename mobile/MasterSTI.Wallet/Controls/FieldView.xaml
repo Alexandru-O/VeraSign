@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    FieldView v2 — labelled wrapper around an Entry/Editor/Picker.
+    Mirrors prototype Brand.jsx Field. Required adds a danger asterisk.
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MasterSTI.Wallet.Controls.FieldView"
+             x:Name="Root">
+
+    <VerticalStackLayout Spacing="6">
+        <Label x:Name="LabelText"
+               FontSize="13"
+               FontFamily="{StaticResource FontSansMedium}"
+               TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}">
+            <Label.FormattedText>
+                <FormattedString>
+                    <Span x:Name="LabelSpan" Text="" />
+                    <Span x:Name="RequiredSpan"
+                          Text=" *"
+                          TextColor="{AppThemeBinding Light={StaticResource DangerLight}, Dark={StaticResource DangerDark}}" />
+                </FormattedString>
+            </Label.FormattedText>
+        </Label>
+        <ContentPresenter Content="{Binding Content, Source={x:Reference Root}}" />
+        <Label x:Name="HintLabel"
+               Text=""
+               FontSize="12"
+               TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+               IsVisible="False" />
+        <Label x:Name="ErrorLabel"
+               Text=""
+               FontSize="12"
+               TextColor="{AppThemeBinding Light={StaticResource DangerLight}, Dark={StaticResource DangerDark}}"
+               IsVisible="False" />
+    </VerticalStackLayout>
+
+</ContentView>

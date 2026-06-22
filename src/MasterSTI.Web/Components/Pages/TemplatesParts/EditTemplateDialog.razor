@@ -1,0 +1,139 @@
+@* EditTemplateDialog — modal for editing an existing template (PUT /api/templates/{id}). *@
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<div class="vs-modal__backdrop" @onclick="HandleClose">
+    <div class="vs-modal__box vs-modal__box--form" @onclick:stopPropagation="true">
+        <div class="vs-modal__head">
+            <div>
+                <div class="vs-modal__title">Editează șablon</div>
+                <div class="vs-modal__sub">Modifică datele de bază ale șablonului.</div>
+            </div>
+            <button class="vs-modal__close" @onclick="HandleClose" aria-label="Închide" type="button">
+                <Icon Name="x" Size="16"/>
+            </button>
+        </div>
+
+        <div class="vs-modal__body vs-modal__body--form">
+            <Field Label="Titlu" Required="true" Error="@_titleError">
+                <Input @bind-Value="_title" Placeholder="ex.: Contract de închiriere"/>
+            </Field>
+
+            <Field Label="Descriere">
+                <Input @bind-Value="_description" Placeholder="Scurtă descriere a șablonului"/>
+            </Field>
+
+            <Field Label="Categorie" Required="true">
+                <select class="vs-tpl-form__select" @bind="_category">
+                    @foreach (var c in TemplateConstants.CategoryOptions)
+                    {
+                        <option value="@c.Value">@c.Label</option>
+                    }
+                </select>
+            </Field>
+
+            <Field Label="Nivel implicit de semnătură" Required="true">
+                <select class="vs-tpl-form__select" @bind="_level">
+                    @foreach (var l in TemplateConstants.LevelOptions)
+                    {
+                        <option value="@l">@l</option>
+                    }
+                </select>
+            </Field>
+
+            @if (!string.IsNullOrEmpty(_apiError))
+            {
+                <div class="vs-tpl-form__error" role="alert">@_apiError</div>
+            }
+
+            <button type="button" class="vs-tpl-form__link" @onclick="GoToContent">
+                Editează conținutul PDF
+                <Icon Name="arrow-right" Size="14"/>
+            </button>
+        </div>
+
+        <div class="vs-modal__foot">
+            <Btn Variant="ghost" OnClick="HandleClose">Anulează</Btn>
+            <Btn OnClick="HandleSave" Loading="_busy">Salvează</Btn>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid TemplateId { get; set; }
+    [Parameter] public string? InitialTitle { get; set; }
+    [Parameter] public string? InitialDescription { get; set; }
+    [Parameter] public string? InitialCategory { get; set; }
+    [Parameter] public string? InitialLevel { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private string _title = "";
+    private string _description = "";
+    private string _category = "Custom";
+    private string _level = "AdES";
+
+    private string? _titleError;
+    private string? _apiError;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        _title = InitialTitle ?? "";
+        _description = InitialDescription ?? "";
+        _category = string.IsNullOrEmpty(InitialCategory) ? "Custom" : InitialCategory;
+        _level = string.IsNullOrEmpty(InitialLevel) ? "AdES" : InitialLevel;
+    }
+
+    private async Task HandleClose()
+    {
+        if (OnClose.HasDelegate) await OnClose.InvokeAsync();
+    }
+
+    private void GoToContent()
+    {
+        Navigation.NavigateTo($"/templates/{TemplateId}/edit-content");
+    }
+
+    private async Task HandleSave()
+    {
+        _titleError = null;
+        _apiError = null;
+
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            _titleError = "Titlul este obligatoriu.";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var body = new
+            {
+                Title = _title.Trim(),
+                Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
+                Category = _category,
+                FieldsJson = (string?)null,
+                DefaultLevel = _level
+            };
+            var resp = await client.PutAsJsonAsync($"/api/templates/{TemplateId}", body);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _apiError = $"Salvarea a eșuat ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            if (OnSaved.HasDelegate) await OnSaved.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _apiError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

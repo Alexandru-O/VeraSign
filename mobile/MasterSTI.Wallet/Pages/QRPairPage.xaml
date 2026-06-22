@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    QR Pair — port of MobileScreens.jsx MQRPair.
+    Top bar with back + title, body text, QR card with corner brackets,
+    TLS notice and manual-entry secondary button.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.QRPairPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Top bar -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="20,52,20,12">
+            <Border Grid.Column="0"
+                    BackgroundColor="Transparent"
+                    StrokeThickness="0"
+                    WidthRequest="36"
+                    HeightRequest="36"
+                    StrokeShape="RoundRectangle 18">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCloseTapped" />
+                </Border.GestureRecognizers>
+                <controls:IconView Name="arrow-left"
+                                   Size="20"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+            </Border>
+            <Label Grid.Column="1"
+                   Text="Conectează-te"
+                   FontSize="15"
+                   FontFamily="{StaticResource FontSansSemiBold}"
+                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                   VerticalTextAlignment="Center" />
+        </Grid>
+
+        <!-- Body -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="28,4,28,28" Spacing="0">
+
+                <Label Text="Scanează codul QR afișat în panoul web pentru a asocia acest dispozitiv contului tău."
+                       FontSize="13"
+                       LineHeight="1.55"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                       Margin="0,0,0,28" />
+
+                <!-- QR card with corner brackets -->
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        Padding="32"
+                        StrokeShape="RoundRectangle 16"
+                        HorizontalOptions="Fill">
+                    <Grid HeightRequest="260">
+                        <controls:QRView x:Name="QrCode"
+                                         Value="verasign://pair/demo-token"
+                                         Size="220"
+                                         HorizontalOptions="Center"
+                                         VerticalOptions="Center" />
+
+                        <!-- 4 corner brackets -->
+                        <BoxView Color="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                 HeightRequest="2" WidthRequest="24"
+                                 HorizontalOptions="Start" VerticalOptions="Start"
+                                 Margin="0,0,0,0" />
+                        <BoxView Color="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                 WidthRequest="2" HeightRequest="24"
+                                 HorizontalOptions="Start" VerticalOptions="Start" />
+
+                        <BoxView Color="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                 HeightRequest="2" WidthRequest="24"
+                                 HorizontalOptions="End" VerticalOptions="Start" />
+                        <BoxView Color="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                 WidthRequest="2" HeightRequest="24"
+                                 HorizontalOptions="End" VerticalOptions="Start" />
+
+                        <BoxView Color="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                 HeightRequest="2" WidthRequest="24"
+                                 HorizontalOptions="Start" VerticalOptions="End" />
+                        <BoxView Color="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                 WidthRequest="2" HeightRequest="24"
+                                 HorizontalOptions="Start" VerticalOptions="End" />
+
+                        <BoxView Color="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                 HeightRequest="2" WidthRequest="24"
+                                 HorizontalOptions="End" VerticalOptions="End" />
+                        <BoxView Color="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                                 WidthRequest="2" HeightRequest="24"
+                                 HorizontalOptions="End" VerticalOptions="End" />
+                    </Grid>
+                </Border>
+
+                <!-- TLS notice -->
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}"
+                        StrokeThickness="0"
+                        Padding="14"
+                        Margin="0,24,0,16"
+                        StrokeShape="RoundRectangle 8">
+                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                        <controls:IconView Name="lock"
+                                           Size="14"
+                                           TintColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                        <Label Text="Conexiune end-to-end criptată · TLS 1.3"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                               VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- Identity picker — which seeded recipient this wallet represents -->
+                <controls:FieldView Label="Identitate semnatar"
+                                    Hint="Portofelul va reprezenta această persoană la semnare."
+                                    Margin="0,8,0,16">
+                    <controls:DropdownView x:Name="PersonaDropdown"
+                                           Icon="user"
+                                           Placeholder="Alege identitatea"
+                                           Changed="OnPersonaChanged" />
+                </controls:FieldView>
+
+                <!-- Manual entry CTA -->
+                <controls:BtnView x:Name="FoundCodeBtn"
+                                  Text="Introdu codul manual"
+                                  Variant="secondary"
+                                  Size="lg"
+                                  Full="True"
+                                  Clicked="OnFoundCodeClicked" />
+
+                <!-- Animated scan line (hidden — kept for code-behind compat) -->
+                <BoxView x:Name="ScanLine"
+                         IsVisible="False"
+                         HeightRequest="0" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+
+</ContentPage>

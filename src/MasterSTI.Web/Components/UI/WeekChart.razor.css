@@ -1,0 +1,118 @@
+/* WeekChart — small inline-SVG bar chart. */
+
+.vs-wkc {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.vs-wkc__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.vs-wkc__title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.vs-wkc__sub {
+    margin: 4px 0 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.vs-wkc__total {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: -0.02em;
+    font-family: var(--font-mono);
+}
+
+.vs-wkc__total-label {
+    font-size: 11px;
+    color: var(--fg-muted);
+}
+
+.vs-wkc__chart {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vs-wkc__svg {
+    width: 100%;
+    height: 80px;
+    display: block;
+}
+
+.vs-wkc__grid line {
+    stroke: var(--border-subtle);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+.vs-wkc__grid--mid {
+    stroke-dasharray: 2 3;
+    opacity: 0.7;
+}
+
+.vs-wkc__bar {
+    fill: var(--fg-muted);
+    transition: fill var(--t-fast) var(--ease);
+}
+
+.vs-wkc__bar--peak { fill: var(--success); }
+
+/* Invisible hover/focus catcher spanning full column height so thin bars
+   (or zero-value days) still respond to pointer + keyboard interaction. */
+.vs-wkc__hit {
+    fill: transparent;
+    pointer-events: all;
+}
+
+.vs-wkc__cell { cursor: default; outline: none; }
+.vs-wkc__cell:hover .vs-wkc__bar,
+.vs-wkc__cell:focus .vs-wkc__bar { fill: var(--ro-blue-500); }
+.vs-wkc__cell:focus { outline: 2px solid var(--ro-blue-300); outline-offset: 1px; }
+
+/* Inline numeric tooltip — hidden by default, shown on hover/focus. */
+.vs-wkc__tip {
+    fill: var(--fg);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+    pointer-events: none;
+}
+.vs-wkc__cell:hover .vs-wkc__tip,
+.vs-wkc__cell:focus .vs-wkc__tip { opacity: 1; }
+
+.vs-wkc__labels {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--fg-subtle);
+    font-family: var(--font-mono);
+    text-align: center;
+    letter-spacing: 0.04em;
+}
+
+.vs-wkc__label { text-transform: uppercase; }
+
+@media (prefers-reduced-motion: reduce) {
+    .vs-wkc__bar { transition: none; }
+}

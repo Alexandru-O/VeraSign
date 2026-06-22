@@ -1,0 +1,88 @@
+@* BenefitIllustration — line-art SVG used in Landing's "Beneficii" grid.
+   Direct port of Landing.jsx BenefitIllustration (lines 292-360). *@
+
+@switch (Name)
+{
+    case "hourglass":
+        <svg width="90" height="100" viewBox="0 0 90 100">
+            <path d="M25 15 L65 15 L50 45 Q45 50 50 55 L65 85 L25 85 L40 55 Q45 50 40 45 Z"
+                  fill="none" stroke="#0F3E93" stroke-width="2"/>
+            <path d="M40 45 Q45 50 50 45 L55 35 L35 35 Z" fill="#0F3E93"/>
+            <circle cx="72" cy="20" r="6" fill="#F8CF3F"/>
+            <rect x="12" y="75" width="10" height="10" fill="#0F3E93"/>
+        </svg>
+        break;
+
+    case "phone-list":
+        <svg width="90" height="100" viewBox="0 0 90 100">
+            <rect x="25" y="10" width="45" height="80" rx="6" fill="none" stroke="#0F3E93" stroke-width="2"/>
+            <circle cx="35" cy="25" r="4" fill="none" stroke="#0F3E93" stroke-width="1.5"/>
+            <line x1="42" y1="25" x2="62" y2="25" stroke="#0F3E93" stroke-width="1.5"/>
+            @foreach (var y in new[] { 40, 52, 64 })
+            {
+                <g>
+                    <path d="@($"M33 {y} L36 {y+3} L40 {y-2}")" stroke="#0F3E93" stroke-width="1.5" fill="none"/>
+                    <line x1="45" y1="@(y+1)" x2="62" y2="@(y+1)" stroke="#0F3E93" stroke-width="1.5"/>
+                </g>
+            }
+            <rect x="12" y="15" width="8" height="8" fill="#E95042"/>
+            <circle cx="75" cy="75" r="5" fill="#F8CF3F"/>
+        </svg>
+        break;
+
+    case "cup":
+        <svg width="90" height="100" viewBox="0 0 90 100">
+            <path d="M20 40 L60 40 L58 80 Q58 85 53 85 L27 85 Q22 85 22 80 Z" fill="none" stroke="#0F3E93" stroke-width="2"/>
+            <path d="M60 50 Q75 50 75 60 Q75 70 60 70" fill="none" stroke="#0F3E93" stroke-width="2"/>
+            <rect x="30" y="25" width="22" height="20" fill="#F8CF3F"/>
+            <path d="M32 20 Q35 15 38 20 M42 20 Q45 15 48 20" stroke="#0F3E93" stroke-width="1.5" fill="none"/>
+            <rect x="68" y="20" width="6" height="6" fill="#0F3E93"/>
+        </svg>
+        break;
+
+    case "24":
+        <svg width="90" height="100" viewBox="0 0 90 100">
+            @for (var i = 0; i < 10; i++)
+            {
+                var a = (i / 10.0) * Math.PI * 2 - Math.PI / 2;
+                var r1 = 30.0; var r2 = 38.0;
+                var x1 = (45 + Math.Cos(a) * r1).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                var y1 = (50 + Math.Sin(a) * r1).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                var x2 = (45 + Math.Cos(a) * r2).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                var y2 = (50 + Math.Sin(a) * r2).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#0F3E93" stroke-width="2" stroke-linecap="round"/>
+            }
+            <text x="45" y="56" text-anchor="middle" font-size="20" font-weight="700" fill="#0F3E93" font-family="Inter">24</text>
+            <path d="M15 75 Q40 95 75 75" stroke="#0F3E93" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>
+            <circle cx="18" cy="25" r="5" fill="#E95042"/>
+            <circle cx="75" cy="38" r="4" fill="#0F3E93"/>
+        </svg>
+        break;
+
+    case "shield":
+        <svg width="90" height="100" viewBox="0 0 90 100">
+            <path d="M45 15 L70 22 V50 C70 67 58 80 45 85 C32 80 20 67 20 50 V22 Z" fill="none" stroke="#0F3E93" stroke-width="2"/>
+            <circle cx="45" cy="48" r="10" fill="none" stroke="#0F3E93" stroke-width="2"/>
+            <circle cx="45" cy="48" r="4" fill="#F8CF3F"/>
+            <rect x="68" y="60" width="10" height="10" fill="#F8CF3F"/>
+            <rect x="8" y="40" width="6" height="6" fill="#0F3E93"/>
+        </svg>
+        break;
+
+    case "signature":
+        <svg width="90" height="100" viewBox="0 0 90 100">
+            <rect x="15" y="18" width="55" height="68" rx="4" fill="none" stroke="#0F3E93" stroke-width="2"/>
+            <circle cx="25" cy="30" r="4" fill="none" stroke="#0F3E93" stroke-width="1.5"/>
+            <line x1="33" y1="30" x2="55" y2="30" stroke="#0F3E93" stroke-width="1.5"/>
+            <line x1="22" y1="45" x2="60" y2="45" stroke="#0F3E93" stroke-width="1.2"/>
+            <line x1="22" y1="52" x2="55" y2="52" stroke="#0F3E93" stroke-width="1.2"/>
+            <line x1="22" y1="59" x2="58" y2="59" stroke="#0F3E93" stroke-width="1.2"/>
+            <path d="M22 72 Q28 65 35 72 Q42 79 50 70 Q56 65 62 72" stroke="#E8B81A" stroke-width="2" fill="none"/>
+            <rect x="72" y="25" width="8" height="8" fill="#F8CF3F"/>
+        </svg>
+        break;
+}
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+}

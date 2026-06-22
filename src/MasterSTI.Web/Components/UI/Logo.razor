@@ -1,0 +1,74 @@
+@* VeraSign monoline wordmark (v2).
+   Mirrors prototype/components/Brand.jsx BrandLogo (lines 9-31).
+   Renders a hollow accent dot + "vera" + muted "Sign". The original
+   "master"/"STI" split from the prototype becomes "vera"/"Sign" so the
+   public brand string stays "VeraSign" (codebase namespace is unchanged). *@
+
+@if (Variant == "stacked")
+{
+    <div class="vs-logo vs-logo--stacked" style="@_rootStyle">
+        @if (WithDot)
+        {
+            <div class="vs-logo__dot" style="@_dotStyle">
+                <div class="vs-logo__dot-inner" style="@_dotInnerStyle"></div>
+            </div>
+        }
+        <span class="vs-logo__word" style="@_wordStyle">
+            Vera<span class="vs-logo__word-mut" style="color:var(--fg-muted);font-weight:400;">Sign</span>
+        </span>
+    </div>
+}
+else
+{
+    @* inline (default) — horizontal *@
+    <div class="vs-logo vs-logo--inline" style="@_rootStyle">
+        @if (WithDot)
+        {
+            <div class="vs-logo__dot" style="@_dotStyle">
+                <div class="vs-logo__dot-inner" style="@_dotInnerStyle"></div>
+            </div>
+        }
+        <span class="vs-logo__word" style="@_wordStyle">
+            Vera<span class="vs-logo__word-mut" style="color:var(--fg-muted);font-weight:400;">Sign</span>
+        </span>
+    </div>
+}
+
+@code {
+    /// <summary>Render size in px — drives both the dot and font size.</summary>
+    [Parameter] public double Size { get; set; } = 18;
+
+    /// <summary>"inline" (default) | "stacked" | "mark" (kept for legacy callers, falls back to inline).</summary>
+    [Parameter] public string Variant { get; set; } = "inline";
+
+    /// <summary>Show the leading dot mark.</summary>
+    [Parameter] public bool WithDot { get; set; } = true;
+
+    /// <summary>Legacy parameter kept so existing callers (mono variant) compile.</summary>
+    [Parameter] public bool Mono { get; set; }
+
+    private string _rootStyle =>
+        $"display:inline-flex;align-items:center;gap:{Size * 0.4:0.##}px;font-family:var(--font-sans);";
+
+    private string _dotStyle
+    {
+        get
+        {
+            var d = Size * 0.9;
+            var bg = Mono || Variant == "mono" ? "currentColor" : "var(--accent)";
+            return $"width:{d:0.##}px;height:{d:0.##}px;border-radius:50%;background:{bg};position:relative;flex-shrink:0;";
+        }
+    }
+
+    private string _dotInnerStyle
+    {
+        get
+        {
+            var bg = Mono || Variant == "mono" ? "var(--bg)" : "var(--bg-elev)";
+            return $"position:absolute;inset:22%;border-radius:50%;background:{bg};";
+        }
+    }
+
+    private string _wordStyle =>
+        $"font-size:{Size:0.##}px;font-weight:600;letter-spacing:-0.02em;color:{(Mono || Variant == "mono" ? "currentColor" : "var(--fg)")};line-height:1;";
+}

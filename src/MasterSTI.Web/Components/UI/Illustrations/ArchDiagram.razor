@@ -1,0 +1,66 @@
+@* ArchDiagram — VeraSign architecture diagram (v2).
+   Restyled to use design tokens via stroke=currentColor + CSS variables;
+   geometry is preserved from Landing.jsx ArchDiagram. *@
+
+<div class="vs-arch">
+    <div class="vs-arch__grid">
+        <div class="vs-arch__col">
+            @foreach (var n in _left)
+            {
+                <div class="vs-arch__box">
+                    <div class="vs-arch__box-eyebrow">@n.Eyebrow</div>
+                    <div class="vs-arch__box-title">@n.Title</div>
+                    <div class="vs-arch__box-sub">@n.Sub</div>
+                </div>
+            }
+        </div>
+
+        <div class="vs-arch__core">
+            <div class="vs-arch__core-eyebrow">VeraSign Core</div>
+            <div class="vs-arch__core-title">ASP.NET Core · API</div>
+            <div class="vs-arch__core-list">
+                @foreach (var s in _services)
+                {
+                    <div class="vs-arch__core-item">@s</div>
+                }
+            </div>
+        </div>
+
+        <div class="vs-arch__col">
+            @foreach (var n in _right)
+            {
+                <div class="vs-arch__box">
+                    <div class="vs-arch__box-eyebrow">@n.Eyebrow</div>
+                    <div class="vs-arch__box-title">@n.Title</div>
+                    <div class="vs-arch__box-sub">@n.Sub</div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private record Box(string Eyebrow, string Title, string Sub);
+
+    private static readonly Box[] _left = new[]
+    {
+        new Box("Client", "MAUI · iOS / Android", "EUDIW · biometrie · PIN"),
+        new Box("Client", "Blazor Server",        "upload · tracking · audit"),
+    };
+
+    private static readonly Box[] _right = new[]
+    {
+        new Box("Extern", "TSP · CSC v2.0",   "certSIGN · Trans Sped"),
+        new Box("Extern", "TSA · RFC 3161",   "marcaj temporal calificat"),
+        new Box("Extern", "EU Trust List",    "verificare TL/LOTL"),
+    };
+
+    private static readonly string[] _services = new[]
+    {
+        "Identity Service · OID4VP",
+        "Document Service · PDF + hash",
+        "Signing Orchestrator",
+        "Verification · ETSI EN 319",
+        "Audit · WORM trail",
+    };
+}

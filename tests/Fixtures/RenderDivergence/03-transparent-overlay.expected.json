@@ -1,0 +1,21 @@
+{
+  "fixture": "03-transparent-overlay.pdf",
+  "attackClass": "transparent-overlay",
+  "pageCount": 1,
+  "locale": "ro-RO",
+  "summary": "'EUR 1.000' headline with an alpha=0 red rectangle drawn over it. Visually a no-op; exercises the PDFium blend / extgstate path. The pinned renderer must produce a bit-identical bitmap regardless of whether the transparent-overlay opcode is replayed by an attacker.",
+  "disputeScenarios": [
+    {
+      "mutation": "Bump the overlay rectangle's fill opacity from 0.0 to a non-zero value (e.g. 0.5) in an incremental update. Visually the amount is occluded by a red wash; PdfiumPinned-v1 renders that wash and R' diverges from R.",
+      "disputedPages": [1],
+      "expectedResult": "Disputed — committed R is the clean 'EUR 1.000' bitmap; R' renders the red wash, root diverges."
+    }
+  ],
+  "verifiedScenarios": [
+    {
+      "mutation": null,
+      "expectedResult": "Verified — alpha-0 overlay is a no-op on the pinned renderer, R == R'."
+    }
+  ],
+  "notes": "ADR-0008 §Test fixtures attack class 'transparent-overlay'. Mladenov et al. NDSS 2021 §3.3 (Shadow Attack 'replace' via annotation visibility)."
+}

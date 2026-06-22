@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    DropdownView v2 — port of prototype Brand.jsx Dropdown.
+    Renders a 40-px tall trigger Border that toggles a popup overlay
+    of options on tap. Items are bound via Items (IList<DropdownOption>).
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Controls.DropdownView"
+             x:Name="Root">
+
+    <Grid x:Name="Root2"
+          RowDefinitions="40,*">
+
+        <!-- Trigger -->
+        <Border x:Name="TriggerBorder"
+                Grid.Row="0"
+                BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                StrokeThickness="1"
+                Padding="12,0"
+                StrokeShape="RoundRectangle 8">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnTriggerTapped" />
+            </Border.GestureRecognizers>
+            <Grid ColumnDefinitions="Auto,*,Auto"
+                  ColumnSpacing="8"
+                  VerticalOptions="Center">
+                <controls:IconView x:Name="LeftIcon"
+                                   Grid.Column="0"
+                                   IsVisible="False"
+                                   Size="14" />
+                <Label x:Name="ValueLabel"
+                       Grid.Column="1"
+                       Text=""
+                       FontSize="14"
+                       LineBreakMode="TailTruncation"
+                       VerticalTextAlignment="Center" />
+                <controls:IconView Grid.Column="2"
+                                   Name="chevron-down"
+                                   Size="14"
+                                   TintColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}" />
+            </Grid>
+        </Border>
+
+        <!-- Popup overlay -->
+        <Border x:Name="Popup"
+                Grid.Row="1"
+                IsVisible="False"
+                BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                StrokeThickness="1"
+                Margin="0,4,0,0"
+                Padding="4"
+                StrokeShape="RoundRectangle 8">
+            <CollectionView x:Name="OptionsList"
+                            SelectionMode="None"
+                            HeightRequest="240">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="10,8"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="8">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnOptionTapped" />
+                            </Grid.GestureRecognizers>
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="{Binding Label}"
+                                       FontSize="14"
+                                       TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                                <Label Text="{Binding Sub}"
+                                       FontSize="12"
+                                       TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                                       IsVisible="{Binding HasSub}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
+    </Grid>
+
+</ContentView>

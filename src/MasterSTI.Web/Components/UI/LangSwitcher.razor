@@ -1,0 +1,59 @@
+@inject MasterSTI.Web.Services.LanguageService Lang
+@implements IDisposable
+
+<button class="vs-langswitch"
+        type="button"
+        title="@Title()"
+        aria-label="@Title()"
+        @onclick="Toggle">
+    <Icon Name="globe" Size="14"/>
+    <span>@Lang.T("lang.toggle")</span>
+</button>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Lang.OnChanged += Refresh;
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private void Toggle() => Lang.Toggle();
+
+    private string Title() => Lang.Current == MasterSTI.Web.Services.LanguageService.Romanian
+        ? "Switch to English"
+        : "Schimbă în română";
+
+    public void Dispose()
+    {
+        Lang.OnChanged -= Refresh;
+    }
+}
+
+<style>
+.vs-langswitch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border, #DFE4EC);
+    background: transparent;
+    border-radius: var(--r-sm, 6px);
+    padding: 5px 10px;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--fg-2, #424A59);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vs-langswitch:hover {
+    background: var(--bg-sunken, #F4F6FB);
+    color: var(--fg, #0B0E15);
+}
+
+.vs-langswitch:focus-visible {
+    outline: 2px solid var(--ro-blue-500, #1D4FBC);
+    outline-offset: 2px;
+}
+</style>

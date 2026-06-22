@@ -1,0 +1,179 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- To add iOS later, change the line below to:
+         <TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks> -->
+    <TargetFrameworks>net10.0-android</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>MasterSTI.Wallet</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- App metadata -->
+    <!-- ApplicationTitle is the user-facing display name; brand is VeraSign. -->
+    <ApplicationTitle>VeraSign Wallet</ApplicationTitle>
+    <ApplicationId>com.mastersti.wallet</ApplicationId>
+    <ApplicationIdGuid>a1b2c3d4-e5f6-7890-abcd-ef1234567890</ApplicationIdGuid>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
+    <!-- iOS TFM placeholder — uncomment when a Mac build agent is available:
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    -->
+  </PropertyGroup>
+
+  <!--
+    Demo persona injection (Phase 2 of docs/two-wallet-demo-plan.md).
+    Build one APK per emulator:
+      dotnet build … -p:WalletPersona=Thea -t:Run -p:AdbTarget=emulator-5554
+      dotnet build … -p:WalletPersona=Toma -t:Run -p:AdbTarget=emulator-5556
+    Distinct ApplicationId values let both APKs coexist on the same device.
+    A bare build (no -p:WalletPersona=…) fails at Config/WalletPersona.cs
+    via #error so the wallet can never ship without an identity baked in.
+  -->
+  <PropertyGroup Condition="'$(WalletPersona)' == 'Thea'">
+    <DefineConstants>$(DefineConstants);WALLET_PERSONA_THEA</DefineConstants>
+    <ApplicationTitle>VeraSign — Thea</ApplicationTitle>
+    <ApplicationId>ro.verasign.wallet.thea</ApplicationId>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(WalletPersona)' == 'Toma'">
+    <DefineConstants>$(DefineConstants);WALLET_PERSONA_TOMA</DefineConstants>
+    <ApplicationTitle>VeraSign — Toma</ApplicationTitle>
+    <ApplicationId>ro.verasign.wallet.toma</ApplicationId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- App Icon -->
+    <MauiIcon Include="Resources/AppIcon/appicon.svg"
+              ForegroundFile="Resources/AppIcon/appiconfg.svg"
+              Color="#1E4289" />
+
+    <!-- Splash Screen -->
+    <MauiSplashScreen Include="Resources/Splash/splash.svg"
+                      Color="#1E4289"
+                      BaseSize="256,256" />
+
+    <!-- Images -->
+    <MauiImage Include="Resources/Images/*" />
+
+    <!-- Fonts -->
+    <MauiFont Include="Resources/Fonts/*" />
+
+    <!--
+      Bundled runtime config (issue #15).
+      Read at first access by Services/WalletConfig.cs via
+      FileSystem.OpenAppPackageFileAsync("wallet.config.json").
+      Shape: { "apiBaseUrl": string, "issuerBaseUrl": string }.
+      Missing file / missing key falls back to compile-time defaults.
+      Edit the JSON to retarget the APK at a non-emulator network
+      (e.g. LAN IP) without a rebuild of the code.
+    -->
+    <MauiAsset Include="Resources/Raw/wallet.config.json"
+               LogicalName="wallet.config.json" />
+
+    <!-- MAUI XAML -->
+    <MauiXaml Update="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="AppShell.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/EnrollmentPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/ScanPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/ConsentPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/StatusPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Resources/Styles/Tokens.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Resources/Styles/Typography.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/LogoView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/IconView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/BtnView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/PillView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/SigLevelView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/CardView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/FieldView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/StepperView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/QRView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/MobileTabBarView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/OnboardingFeatureRow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls/OnboardingIssueOption.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/OnboardingPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/QRPairPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/BiometricPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/InboxPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/ReviewPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/DonePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/HistoryPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages/IdentitiesPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+
+    <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.7.4" />
+    <PackageReference Include="Plugin.Fingerprint" Version="2.1.5" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.17.0" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MasterSTI.Shared\MasterSTI.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

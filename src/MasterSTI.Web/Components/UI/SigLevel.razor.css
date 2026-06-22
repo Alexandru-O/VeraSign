@@ -1,0 +1,21 @@
+/* SigLevel — md inline label (v2). */
+
+.vs-siglevel--md {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.vs-siglevel__label {
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.vs-siglevel__sub {
+    color: var(--fg-subtle);
+    font-family: var(--font-sans);
+    font-size: 12px;
+}

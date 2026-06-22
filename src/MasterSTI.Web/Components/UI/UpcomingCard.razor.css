@@ -1,0 +1,122 @@
+/* UpcomingCard — sidebar widget for "Necesita atentia ta". */
+
+.vs-upc {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.vs-upc__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.vs-upc__title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.vs-upc__sub {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--fg-muted);
+}
+
+.vs-upc__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vs-upc__item {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    background: var(--bg-sunken);
+    border: 1px solid var(--border-subtle);
+    transition: background var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease);
+}
+
+.vs-upc__item:hover {
+    background: var(--bg-elev);
+    border-color: var(--border);
+}
+
+.vs-upc__item-ic {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--r-pill);
+    background: var(--bg-elev);
+    color: var(--fg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vs-upc__item--danger  .vs-upc__item-ic { background: var(--danger-bg);  color: var(--danger); }
+.vs-upc__item--warning .vs-upc__item-ic { background: var(--warning-bg); color: var(--warning); }
+.vs-upc__item--info    .vs-upc__item-ic { background: var(--info-bg);    color: var(--info); }
+.vs-upc__item--success .vs-upc__item-ic { background: var(--success-bg); color: var(--success); }
+
+.vs-upc__item-body { min-width: 0; }
+
+.vs-upc__item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vs-upc__item-meta {
+    font-size: 11px;
+    color: var(--fg-muted);
+    margin-top: 2px;
+}
+
+.vs-upc__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 8px;
+    color: var(--fg-muted);
+    text-align: center;
+    gap: 8px;
+}
+
+.vs-upc__empty-ic {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-pill);
+    background: var(--success-bg);
+    color: var(--success);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vs-upc__empty-text {
+    font-size: 13px;
+    color: var(--fg-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vs-upc__item { transition: none; }
+}

@@ -1,0 +1,64 @@
+@* Sparkline — 7-day uptime strip rendered as 84 colour-coded SVG cells, one
+   per ~2h bucket from oldest to newest. Each cell is "ok" | "warn" | "err" |
+   "na" (no sample). Pure SVG, no JS. *@
+
+<span class="vs-spark"
+      role="img"
+      aria-label="@_ariaSummary"
+      title="@_ariaSummary">
+    <svg viewBox="0 0 @_vbWidth @_vbHeight"
+         preserveAspectRatio="none"
+         class="vs-spark__svg"
+         focusable="false">
+        @for (var i = 0; i < Buckets.Count; i++)
+        {
+            var x = i * _step;
+            var cls = Buckets[i] switch
+            {
+                "ok"   => "vs-spark__cell vs-spark__cell--ok",
+                "warn" => "vs-spark__cell vs-spark__cell--warn",
+                "err"  => "vs-spark__cell vs-spark__cell--err",
+                _       => "vs-spark__cell vs-spark__cell--na",
+            };
+            <rect class="@cls"
+                  x="@F(x)" y="0"
+                  width="@F(_cellW)" height="@_vbHeight"/>
+        }
+    </svg>
+</span>
+
+@code {
+    /// <summary>Health bucket trail, oldest to newest. Values: "ok"|"warn"|"err"|"na".</summary>
+    [Parameter] public IReadOnlyList<string> Buckets { get; set; } = Array.Empty<string>();
+    /// <summary>Short label used in aria-summary, e.g. "QTSP" or "TSA".</summary>
+    [Parameter] public string Label { get; set; } = "";
+
+    private const double _vbHeight = 12;
+    private double _vbWidth => Math.Max(1, Buckets.Count) * _step;
+    private double _step => 2.0;     // one bucket per 2 user-units
+    private double _cellW => 1.6;    // 0.4 gap between cells
+
+    private string _ariaSummary
+    {
+        get
+        {
+            if (Buckets.Count == 0) return $"{Label} fără istoric";
+            var sampled = 0; var ok = 0; var warn = 0; var err = 0;
+            foreach (var b in Buckets)
+            {
+                switch (b)
+                {
+                    case "ok":   ok++;   sampled++; break;
+                    case "warn": warn++; sampled++; break;
+                    case "err":  err++;  sampled++; break;
+                }
+            }
+            if (sampled == 0) return $"{Label} fără sample în 7 zile";
+            var pct = (int)Math.Round((ok + warn) * 100.0 / sampled);
+            var prefix = string.IsNullOrEmpty(Label) ? "Uptime" : $"{Label} uptime";
+            return $"{prefix} {pct}% în 7 zile ({ok} ok, {warn} atenție, {err} erori)";
+        }
+    }
+
+    private static string F(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}

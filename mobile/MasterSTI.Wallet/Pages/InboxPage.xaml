@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Inbox — live API listing. Items polled from /api/wallet/inbox every 30 s.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             xmlns:services="clr-namespace:MasterSTI.Wallet.Services"
+             x:Class="MasterSTI.Wallet.Pages.InboxPage"
+             x:Name="ThisPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="0,52,0,96" Spacing="0">
+
+                <!-- Greeting header -->
+                <Grid Padding="24,0,24,16"
+                      ColumnDefinitions="*,Auto"
+                      RowDefinitions="Auto,Auto,Auto"
+                      RowSpacing="4">
+
+                    <Label Grid.Row="0" Grid.Column="0"
+                           Text="Bună"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                           VerticalOptions="Center" />
+                    <Border Grid.Row="0" Grid.Column="1"
+                            Grid.RowSpan="3"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}"
+                            StrokeThickness="0"
+                            WidthRequest="36"
+                            HeightRequest="36"
+                            StrokeShape="RoundRectangle 18"
+                            VerticalOptions="Start">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnIdentitiesTapped" />
+                        </Border.GestureRecognizers>
+                        <Label x:Name="AvatarLabel"
+                               Text="?"
+                               FontSize="13"
+                               FontFamily="{StaticResource FontSansSemiBold}"
+                               TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Border>
+
+                    <Label Grid.Row="1" Grid.Column="0"
+                           Text="Cereri primite"
+                           FontSize="28"
+                           FontFamily="{StaticResource FontSansSemiBold}"
+                           LineHeight="1.1"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+
+                    <Label Grid.Row="2" Grid.Column="0"
+                           x:Name="StraplineLabel"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                </Grid>
+
+                <!-- Error state — login / network failure (distinct from empty) -->
+                <Border x:Name="ErrorPanel"
+                        IsVisible="False"
+                        Margin="16,0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        Padding="20"
+                        StrokeShape="RoundRectangle 12">
+                    <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                        <controls:IconView Name="alert-triangle"
+                                           Size="28"
+                                           TintColor="{StaticResource Danger500}"
+                                           HorizontalOptions="Center" />
+                        <Label Text="Conexiune eșuată"
+                               FontSize="15"
+                               FontFamily="{StaticResource FontSansSemiBold}"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                        <Label Text="Nu am putut conecta portofelul la VeraSign. Verifică rețeaua și încearcă din nou."
+                               FontSize="13"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                        <controls:BtnView Text="Reîncearcă"
+                                          Variant="primary"
+                                          HorizontalOptions="Center"
+                                          Clicked="OnRetryClicked" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Dynamic list -->
+                <CollectionView x:Name="InboxList"
+                                Margin="16,0"
+                                SelectionMode="None"
+                                EmptyView="Inboxul este gol pentru moment. Cererile noi apar aici în 30 s.">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="services:WalletInboxItem">
+                            <Border BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                                    StrokeThickness="1"
+                                    Padding="16"
+                                    StrokeShape="RoundRectangle 12">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnItemTapped"
+                                                           CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                        <Label Text="{Binding DocumentName}"
+                                               FontSize="15"
+                                               FontFamily="{StaticResource FontSansSemiBold}"
+                                               TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                                        <Label Text="{Binding SenderName}"
+                                               FontSize="12"
+                                               TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                                        <controls:SigLevelView Level="{Binding Level}" Size="sm" Margin="0,8,0,0" />
+                                    </VerticalStackLayout>
+                                    <controls:IconView Grid.Column="1"
+                                                       Name="chevron-right"
+                                                       Size="16"
+                                                       TintColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                                                       VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="Vezi istoricul complet"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                       HorizontalOptions="Center"
+                       Padding="6"
+                       Margin="0,16,0,0">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSeeAllHistoryTapped" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <controls:MobileTabBarView Grid.Row="0"
+                                   Active="inbox"
+                                   VerticalOptions="End" />
+    </Grid>
+
+</ContentPage>

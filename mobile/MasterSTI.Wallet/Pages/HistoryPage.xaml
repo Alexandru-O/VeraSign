@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    History — port of MobileScreens.jsx MHistory.
+    "Activitate / Istoric semnături" header + green-dot rows + MobileTabBarView.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.HistoryPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="0,52,0,96" Spacing="0">
+
+                <!-- Header -->
+                <VerticalStackLayout Padding="24,0,24,16" Spacing="4">
+                    <Label Text="Activitate"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                    <Label Text="Istoric semnături"
+                           FontSize="28"
+                           FontFamily="{StaticResource FontSansSemiBold}"
+                           LineHeight="1.1"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                </VerticalStackLayout>
+
+                <!-- List (filled by code-behind BuildList) -->
+                <VerticalStackLayout x:Name="HistoryList"
+                                     Padding="16,0"
+                                     Spacing="8" />
+
+                <!-- Back link -->
+                <Label Text="Înapoi la cereri"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                       HorizontalOptions="Center"
+                       Padding="6"
+                       Margin="0,16,0,0">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackTapped" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <controls:MobileTabBarView Grid.Row="0"
+                                   Active="history"
+                                   VerticalOptions="End" />
+    </Grid>
+
+</ContentPage>

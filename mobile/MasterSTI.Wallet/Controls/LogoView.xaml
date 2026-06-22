@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    LogoView — VeraSign wordmark v2 (port of prototype Brand.jsx BrandLogo).
+    Renders a small accent dot + "vera" + muted "Sign". Theme-aware via AppThemeBinding.
+    Set Size to control text size (default 18).
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MasterSTI.Wallet.Controls.LogoView">
+
+    <HorizontalStackLayout x:Name="Root"
+                           Spacing="7"
+                           VerticalOptions="Center">
+        <!-- Dot: outer disc + inner cut-out (matches BrandLogo) -->
+        <Grid x:Name="DotHost"
+              WidthRequest="16"
+              HeightRequest="16"
+              VerticalOptions="Center">
+            <Border x:Name="DotOuter"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource AccentLight}, Dark={StaticResource AccentDark}}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 999"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Fill" />
+            <Border x:Name="DotInner"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 999"
+                    Margin="3"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Fill" />
+        </Grid>
+
+        <!-- Wordmark: "vera" (full weight) + "Sign" (muted) -->
+        <Label x:Name="Wordmark"
+               FontFamily="{StaticResource FontSansSemiBold}"
+               FontSize="18"
+               LineHeight="1"
+               VerticalTextAlignment="Center">
+            <Label.FormattedText>
+                <FormattedString>
+                    <Span x:Name="VeraSpan"
+                          Text="vera"
+                          FontFamily="{StaticResource FontSansSemiBold}"
+                          TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                    <Span x:Name="SignSpan"
+                          Text="Sign"
+                          FontFamily="{StaticResource FontSans}"
+                          TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                </FormattedString>
+            </Label.FormattedText>
+        </Label>
+    </HorizontalStackLayout>
+
+</ContentView>

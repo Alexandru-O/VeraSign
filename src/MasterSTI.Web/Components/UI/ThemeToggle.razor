@@ -1,0 +1,38 @@
+@* Theme toggle — sun/moon button.
+   Reads + flips theme via window.verasign helpers (wwwroot/js/theme.js). *@
+
+@inject IJSRuntime JS
+
+<button class="vs-theme-toggle"
+        type="button"
+        aria-label="Schimbă tema"
+        title="Schimbă tema"
+        @onclick="ToggleAsync">
+    <Icon Name="@(_theme == "dark" ? "sun" : "moon")" Size="16"/>
+</button>
+
+@code {
+    private string _theme = "light";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _theme = await JS.InvokeAsync<string>("verasign.getTheme");
+                StateHasChanged();
+            }
+            catch (JSDisconnectedException) { /* prerender — ignore */ }
+        }
+    }
+
+    private async Task ToggleAsync()
+    {
+        try
+        {
+            _theme = await JS.InvokeAsync<string>("verasign.toggleTheme");
+        }
+        catch (JSDisconnectedException) { /* circuit gone — ignore */ }
+    }
+}

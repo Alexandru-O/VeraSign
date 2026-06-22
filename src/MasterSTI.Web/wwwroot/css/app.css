@@ -1,0 +1,309 @@
+/* ============================================================
+   MasterSTI / VeraSign — Base styles v2
+   Loads after tokens.css; relies on its custom properties.
+   ============================================================ */
+
+html, body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  margin: 0;
+  padding: 0;
+  transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease);
+}
+
+* { box-sizing: border-box; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  margin: 0;
+}
+h1 { font-size: 28px; font-weight: 600; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 18px; font-weight: 600; }
+h4 { font-size: 15px; font-weight: 600; }
+
+.display {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--fg);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--fg-subtle);
+  font-family: var(--font-mono);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--sh-focus);
+}
+
+/* Screen-reader-only utility: visually hidden but announced. */
+.vs-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Global reduced-motion respect — kills site-wide transitions + animations
+   for users who opt in via OS setting. Per-component overrides remain in
+   their own files. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--t-fast) var(--ease);
+}
+a:hover { text-decoration-color: var(--fg); }
+
+/* Animations referenced by primitives + pages */
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes pulse    { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes slideUp  { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes checkPop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes msPulse  { 0%, 100% { transform: scale(0.6); opacity: 0.6; } 50% { transform: scale(1); opacity: 1; } }
+
+/* Blazor framework hooks */
+.valid.modified:not([type=checkbox]) { outline: 1px solid var(--success); }
+.invalid { outline: 1px solid var(--danger); }
+.validation-message { color: var(--danger); font-size: 12px; }
+
+/* Error UI */
+#blazor-error-ui {
+  color-scheme: light only;
+  background: var(--warning-bg);
+  color: var(--warning);
+  bottom: 0;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  display: none;
+  left: 0;
+  padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+  cursor: pointer;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.5rem;
+}
+
+.blazor-error-boundary {
+  background: var(--danger);
+  color: var(--accent-fg);
+  padding: 1rem 1rem 1rem 3.7rem;
+}
+.blazor-error-boundary::after { content: "An error has occurred."; }
+
+/* QR component — global rules so the rendered <img> fills the wrapper. */
+.vs-qr {
+  display: inline-block;
+  line-height: 0;
+  overflow: hidden;
+  background: var(--bg-elev);
+  border-radius: var(--r-md);
+}
+.vs-qr > img,
+.vs-qr > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.vs-qr__placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-sunken);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-md);
+}
+
+/* PlaceFieldsView — PDF.js viewer + field markers. Global because the
+   per-page wrappers, overlays, and markers are built by place-fields.js
+   (no Blazor scope attribute), so the rules must apply unscoped. */
+.vs-pf__canvas--scroll {
+  overflow: auto;
+  max-height: calc(100vh - 240px);
+  min-height: 240px;
+  padding: 16px;
+  background: var(--bg-elev);
+  border-radius: var(--r-sm);
+  box-shadow: var(--sh-md);
+}
+.vs-pf__pdf-host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.vs-pf__page {
+  position: relative;
+  background: white;
+  line-height: 0;
+  box-shadow: var(--sh-sm);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.vs-pf__page > canvas { display: block; }
+.vs-pf__page__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.vs-pf__page__overlay--active {
+  pointer-events: auto;
+  cursor: crosshair;
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  outline: 2px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  outline-offset: -4px;
+}
+.vs-pf__page__markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.vs-pf__field {
+  position: absolute;
+  border: 2px dashed currentColor;
+  border-radius: var(--r-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  pointer-events: none;
+}
+.vs-pf__field-badge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: var(--sh-sm);
+  pointer-events: none;
+}
+
+/* ViewerPage — authenticated PDF inline viewer. The iframe receives a
+   blob: URL built from bytes fetched through the Blazor circuit, so the
+   browser never needs to carry the API JWT itself. */
+.vs-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(100vh - 140px);
+  min-height: 540px;
+}
+.vs-viewer__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.vs-viewer__head-left,
+.vs-viewer__head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vs-viewer__file {
+  font-weight: 600;
+  color: var(--fg-1);
+}
+.vs-viewer__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--bg-elev);
+  color: var(--fg-1);
+  text-decoration: none;
+  font-size: 13px;
+}
+.vs-viewer__download:hover { background: var(--bg-hover, var(--bg-elev)); }
+.vs-viewer__frame-card {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+.vs-viewer__frame {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  background: var(--bg-base);
+}
+.vs-viewer__loading,
+.vs-viewer__error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--fg-2);
+}

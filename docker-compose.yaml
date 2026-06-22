@@ -1,0 +1,228 @@
+# MasterSTI / VeraSign — full-stack demo via Docker Compose.
+#
+# Quick start:
+#   cp .env.example .env       # tweak passwords if you like
+#   docker compose up --build
+#
+# Browser entrypoint: http://localhost:7165 (Web, Blazor Server)
+# Demo login:         admin@verasign.demo / Demo!2025
+#
+# WALLET + PIXEL-BOUND QES (ADR-0008) — now wired end-to-end against compose:
+#   * api + issuer serve HTTPS on the host-facing ports the MAUI wallet expects
+#     (wallet refuses cleartext — network_security_config.xml). Dev pfx is mounted
+#     from ./docker/https (generate: dotnet dev-certs https -ep docker/https/aspnetapp.pfx -p verasign-dev).
+#   * The render-commitment endpoint runs on the Linux api container, which is the
+#     ONLY host that ships the pinned linux-x64 PDFium binary — so the wallet's
+#     real biometric signature carries a real Merkle root and the validation report
+#     shows R == R'. The exe stack (Windows) cannot do this (win-x64 placeholder).
+#   * Mock.Issuer (ADR-0005) is modelled here so the wallet can enroll a PID.
+#     Its RSA key is pinned (./docker/issuer/issuer-key.pem) so the api can verify
+#     SD-JWT signatures against a known public PEM (no inter-container HTTPS fetch).
+#
+# HTTPS is bound via Kestrel__Endpoints (NOT ASPNETCORE_URLS) on purpose: the api's
+# UseHttpsRedirection gate keys off ASPNETCORE_URLS containing "https://", so we keep
+# it empty to leave redirect OFF — inter-container web -> api stays plain http:8080.
+
+name: mastersti
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    pull_policy: missing
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Strong!DemoPass123}
+      MSSQL_PID: Developer
+    volumes:
+      - mssql-data:/var/opt/mssql
+    networks: [ vsnet ]
+    restart: unless-stopped
+    # 1433 is internal-only by default. Uncomment to attach SSMS / Azure Data Studio from the host.
+    # ports:
+    #   - "1433:1433"
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -No -Q \"SELECT 1\" || exit 1"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  qtsp:
+    build:
+      context: .
+      dockerfile: tests/MasterSTI.Mock.Qtsp/Dockerfile
+    pull_policy: missing
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+    ports:
+      - "7111:8080"
+    networks: [ vsnet ]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8080/health >/dev/null || exit 1" ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  # Mock EUDIW Issuer (ADR-0005) — mints PID SD-JWTs for the wallet, owns its own
+  # MasterSTI_Issuer database. Serves HTTPS on the host port (7112) the wallet pins.
+  issuer:
+    build:
+      context: .
+      dockerfile: tests/MasterSTI.Mock.Issuer/Dockerfile
+    pull_policy: missing
+    depends_on:
+      mssql: { condition: service_healthy }
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Empty ASPNETCORE_URLS — bind via Kestrel__Endpoints below so http+https both listen.
+      ASPNETCORE_URLS: ""
+      Kestrel__Endpoints__Http__Url: "http://+:8080"
+      Kestrel__Endpoints__Https__Url: "https://+:8443"
+      Kestrel__Endpoints__Https__Certificate__Path: "/https/aspnetapp.pfx"
+      Kestrel__Endpoints__Https__Certificate__Password: "verasign-dev"
+      ConnectionStrings__Issuer: "Server=mssql,1433;Database=MasterSTI_Issuer;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Strong!DemoPass123};TrustServerCertificate=True;Encrypt=False"
+      # Browser-simulator helpers (not used by the MAUI wallet flow):
+      ApiBaseUrl: "http://api:8080"
+      VerifierId: "https://10.0.2.2:7001"
+    volumes:
+      - ./docker/https:/https:ro
+      # Pin the issuer RSA key so the api can verify SD-JWTs against a known public PEM.
+      - ./docker/issuer/issuer-key.pem:/app/issuer-key.pem:ro
+    ports:
+      - "7112:8443"
+    networks: [ vsnet ]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsSk https://localhost:8443/eudiw/issuer-public-key.pem >/dev/null || exit 1" ]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 20s
+
+  api:
+    build:
+      context: .
+      dockerfile: src/MasterSTI.Api/Dockerfile
+    pull_policy: missing
+    depends_on:
+      mssql: { condition: service_healthy }
+      qtsp:  { condition: service_healthy }
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Empty ASPNETCORE_URLS keeps UseHttpsRedirection OFF (gate keys off https:// here),
+      # so inter-container web -> api stays plain http:8080. HTTPS is bound below for the wallet.
+      ASPNETCORE_URLS: ""
+      Kestrel__Endpoints__Http__Url: "http://+:8080"
+      Kestrel__Endpoints__Https__Url: "https://+:8443"
+      Kestrel__Endpoints__Https__Certificate__Path: "/https/aspnetapp.pfx"
+      Kestrel__Endpoints__Https__Certificate__Password: "verasign-dev"
+      # Connection string key in code is "Default" (Configuration.GetConnectionString("Default")).
+      ConnectionStrings__Default: "Server=mssql,1433;Database=MasterSTI;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Strong!DemoPass123};TrustServerCertificate=True;Encrypt=False"
+
+      # CSC v2 (mock QTSP)
+      CscApi__BaseUrl: "http://qtsp:8080"
+      CscApi__Username: "mock-user"
+      CscApi__Password: "mock-pass"
+      CscApi__CredentialId: "mock-credential-001"
+      CscApi__ClientId: "verasign-demo"
+
+      # EUDIW — wallet-facing identity. PublicBaseUrl makes the API present
+      # https://10.0.2.2:7001 in QR/request-object/aud, matching the wallet's
+      # 10.0.2.2 loopback to the host AND its pinned ExpectedVerifierClientId.
+      Eudiw__PublicBaseUrl: "https://10.0.2.2:7001"
+      Eudiw__VerifierId: "https://10.0.2.2:7001"
+      Eudiw__ResponseUri: "https://10.0.2.2:7001/api/eudiw/response"
+      # Pinned issuer public key (literal beats PemUrl). Pairs with ./docker/issuer/issuer-key.pem.
+      Eudiw__IssuerPublicKeyPem: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAy/bT5Xxb4h1EFaGoQuL+
+        KJEfW9yhrHs4pwY5mV6c2rrLXrPO7qekNLCeO/hw6hY4poZNKetHvfwRJKPz+8qy
+        yvc/7RlqAMpr7EX3GcdeUdx2juf03QyiCeN2mmSJ/1ThG77S82egzPhk5t0sOXEx
+        Y80rrJVJrnFBbPIFISsnUPVGRzGVNwNTHjGJrCi641oDVkUQXybLgftT9mqlNtxC
+        TownSzvMVXkmxGiVNVGuPNZpoXpgeYQZTBp42D7aRfK08Hih5r/itLKFzbt/tN59
+        PScLcDGhHs4Y1UK8ic+Td2Cssq+IBZpmnJdwilkz+SrCz78roSNbBO3Hc9J0oR7y
+        VwIDAQAB
+        -----END PUBLIC KEY-----
+      Eudiw__IssuerPublicKeyPemUrl: ""
+      # Pin = sha256 of the normalised pinned PEM above; enforces TOFU on next boot.
+      Eudiw__IssuerPublicKeyPemSha256: "491adf3562f695775bf04bb37bb3c4b19bf6869ec9893d8c406075a5d97432af"
+      Eudiw__AllowUnsignedJwt: "false"
+      Eudiw__NonceCacheMinutes: "10"
+
+      # ADR-0011: OID4VP signed request_object. Demo EC P-256 key — public half is
+      # pinned in mobile/MasterSTI.Wallet/Services/WalletConfig.cs (same value start-all.ps1 injects).
+      Eudiw__RequestObjectSigning__PrivateKeyPem: |
+        -----BEGIN PRIVATE KEY-----
+        MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgS3FTgvncFIYV9dLP
+        3LWKUkkUgZCKtNJoAHtHgLSGMtmhRANCAAQ5B4L3ymu6juqhjnslNox1IKoJUzti
+        egrs0nmkjkkywJvgnQrtQn4uaPX2Vj5ZM0WX7UKRxCr1nkBEDlTgTglw
+        -----END PRIVATE KEY-----
+      Eudiw__RequestObjectSigning__Kid: "verasign-rqo-v1"
+      Eudiw__RequestObjectSigning__ExpiresInSeconds: "300"
+
+      # JWT. Symmetric key — must be >=32 chars or auth is disabled (see Program.cs).
+      Jwt__Signing__Key: ${JWT_SIGNING_KEY:-dev-only-symmetric-key-32-chars-min-12345}
+      Jwt__Issuer: "http://api:8080"
+      Jwt__Audience: "http://api:8080"
+
+      ApiKey__Required: "false"
+
+      # TSA + OCSP diagnostics probes (root config keys). Override here so
+      # containers point at reachable internet TSAs. Set to empty to mark "warn".
+      TsaUrl: "http://timestamp.digicert.com"
+      OcspUrl: "http://ocsp.digicert.com"
+    volumes:
+      - api-storage:/app/storage
+      - ./docker/https:/https:ro
+    ports:
+      - "7001:8443"   # HTTPS — wallet (https://10.0.2.2:7001) + host curl -k
+      - "7002:8080"   # HTTP  — host-side convenience (smoke/curl)
+    networks: [ vsnet ]
+    restart: unless-stopped
+    healthcheck:
+      # /healthz is wired to ASP.NET HealthChecks (DbContext + self); anonymous.
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8080/healthz >/dev/null || exit 1" ]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: src/MasterSTI.Web/Dockerfile
+    pull_policy: missing
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      ApiBaseUrl: "http://api:8080"
+      # EUDIW wallet simulators live on Mock.Issuer (ADR-0005). Server-to-server URL:
+      MockIssuerBaseUrl: "http://issuer:8080"
+      # Browser-facing URL for the EU Wallet simulator link (rendered in HTML).
+      MockIssuerPublicBaseUrl: "https://localhost:7112"
+    ports:
+      - "7165:8080"
+    networks: [ vsnet ]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8080/login >/dev/null || exit 1" ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+networks:
+  vsnet:
+    driver: bridge
+
+volumes:
+  mssql-data:
+  api-storage:

@@ -1,0 +1,621 @@
+@page "/documents"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject IAuthService Auth
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpFactory
+@inject ILogger<DocumentsList> Logger
+
+@using System.Net.Http.Json
+@using MasterSTI.Shared.DTOs.Dashboard
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.WebUtilities
+
+<PageTitle>VeraSign · Documente</PageTitle>
+<PageHeader Title="Documente" Breadcrumb="Documente"/>
+
+<div class="vs-docs">
+    <section class="vs-docs__filters" aria-label="Filtre">
+        <div class="vs-docs__search-wrap">
+            <Icon Name="search" Size="14"/>
+            <input class="vs-docs__search"
+                   type="search"
+                   placeholder="Caută după nume..."
+                   value="@_search"
+                   @oninput="OnSearchInput"
+                   aria-label="Caută documente"/>
+        </div>
+
+        <div class="vs-docs__chip-stack">
+            <div class="vs-docs__chip-row" role="group" aria-label="Filtre status">
+                @foreach (var c in _statusChips)
+                {
+                    var on = c.Value == _status;
+                    <button type="button"
+                            class="vs-docs__chip @(on ? "is-active" : "")"
+                            aria-pressed="@(on ? "true" : "false")"
+                            @onclick="() => SetStatusAsync(c.Value)">@c.Label</button>
+                }
+            </div>
+            <div class="vs-docs__chip-row" role="group" aria-label="Filtre nivel">
+                @foreach (var c in _levelChips)
+                {
+                    var on = c.Value == _level;
+                    <button type="button"
+                            class="vs-docs__chip @(on ? "is-active" : "")"
+                            aria-pressed="@(on ? "true" : "false")"
+                            @onclick="() => SetLevelAsync(c.Value)">@c.Label</button>
+                }
+            </div>
+            <div class="vs-docs__chip-row" role="group" aria-label="Filtre perioadă">
+                @foreach (var c in _periodChips)
+                {
+                    var on = c.Value == _period;
+                    <button type="button"
+                            class="vs-docs__chip @(on ? "is-active" : "")"
+                            aria-pressed="@(on ? "true" : "false")"
+                            @onclick="() => SetPeriodAsync(c.Value)">@c.Label</button>
+                }
+            </div>
+        </div>
+    </section>
+
+    @if (_error is not null)
+    {
+        <div class="vs-docs__error" role="alert">
+            <Icon Name="x" Size="16"/>
+            <span>@_error</span>
+            <Btn Variant="ghost" Size="sm" OnClick="ReloadAsync">Reîncearcă</Btn>
+        </div>
+    }
+
+    <section class="vs-docs__panel" aria-busy="@(_loading ? "true" : "false")">
+        @if (_loading)
+        {
+            <div class="vs-docs__skeleton-list">
+                @for (var i = 0; i < 6; i++)
+                {
+                    <div class="vs-docs__skeleton-row"></div>
+                }
+            </div>
+        }
+        else if (_items.Count == 0)
+        {
+            <div class="vs-docs__empty">
+                <Icon Name="inbox" Size="22"/>
+                <p>Nicio potrivire cu filtrele actuale.</p>
+                @if (HasAnyFilter())
+                {
+                    <Btn Variant="ghost" Size="sm" OnClick="ClearAllAsync">Resetează filtrele</Btn>
+                }
+                else
+                {
+                    <Btn Variant="primary" Size="sm" OnClick='() => Navigation.NavigateTo("/documents/new")'>Document nou</Btn>
+                }
+            </div>
+        }
+        else
+        {
+            <table class="vs-docs__table">
+                <caption class="vs-sr-only">Listă documente, sortate descrescător după data încărcării.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Document</th>
+                        <th scope="col">Semnatar</th>
+                        <th scope="col">Nivel</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="vs-docs__th-right">Trimis</th>
+                        <th scope="col" class="vs-docs__th-right">Acțiuni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in _items)
+                    {
+                        var s = StatusToPill(d.Status);
+                        <tr>
+                            <td class="vs-docs__td-strong">
+                                <a class="vs-docs__name-link"
+                                   href="/documents/@d.Id">@d.Name</a>
+                            </td>
+                            <td class="vs-docs__td-muted">@(d.RecipientPrimary ?? "—")</td>
+                            <td><SigLevel Level="@d.Level" Size="sm"/></td>
+                            <td><Pill Tone="@s.Tone" Dot="true">@s.Label</Pill></td>
+                            <td class="vs-docs__td-right vs-docs__td-mono">@FormatRelative(d.UpdatedAt)</td>
+                            <td class="vs-docs__td-right">
+                                <div class="vs-docs__row-actions">
+                                    <Btn Variant="ghost" Size="sm" Icon="eye"
+                                         OnClick="() => OpenViewer(d.Id)">Vezi</Btn>
+                                    @if (d.SignedDocumentId is { } signedId)
+                                    {
+                                        <SignedDocDownload SignedDocumentId="@signedId"
+                                                           FileName="@($"signed_{d.Name}")"
+                                                           Label="Descarcă"
+                                                           CssClass="vs-docs__download"/>
+                                        <Btn Variant="ghost" Size="sm" Icon="shield"
+                                             OnClick="@(() => Navigation.NavigateTo($"/signed/{signedId}/validate"))">Raport</Btn>
+                                    }
+                                    @{ var canRemind = string.Equals(d.Status, "Awaiting", StringComparison.OrdinalIgnoreCase); }
+                                    @{ var canCancel = canRemind || string.Equals(d.Status, "Uploaded", StringComparison.OrdinalIgnoreCase); }
+                                    @{ var canDelete = !(string.Equals(d.Status, "Preparing", StringComparison.OrdinalIgnoreCase)
+                                                       || string.Equals(d.Status, "Signing", StringComparison.OrdinalIgnoreCase)); }
+                                    @if (canRemind)
+                                    {
+                                        <Btn Variant="ghost" Size="sm" Icon="bell"
+                                             Disabled="@_actionBusy"
+                                             OnClick="() => RemindAsync(d.Id)">Reminder</Btn>
+                                    }
+                                    @if (canCancel)
+                                    {
+                                        <Btn Variant="ghost" Size="sm" Icon="x"
+                                             AdditionalClass="vs-docs__btn-danger"
+                                             Disabled="@_actionBusy"
+                                             OnClick="() => RequestCancel(d.Id, d.Name)">Anulează</Btn>
+                                    }
+                                    @if (canDelete)
+                                    {
+                                        <Btn Variant="ghost" Size="sm" Icon="trash"
+                                             AdditionalClass="vs-docs__btn-danger"
+                                             Disabled="@_actionBusy"
+                                             OnClick="() => RequestDelete(d.Id, d.Name)">Șterge</Btn>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    @if (_toast is not null)
+    {
+        <div class="vs-docs__toast vs-docs__toast--@_toastTone" role="status">
+            <Icon Name="check" Size="14"/>
+            <span>@_toast</span>
+        </div>
+    }
+
+    @if (_cancelTarget is { } ct)
+    {
+        <div class="vs-docs__modal-backdrop" @onclick="CloseCancel" role="presentation">
+            <div class="vs-docs__modal" @onclick:stopPropagation="true" role="dialog" aria-modal="true"
+                 aria-labelledby="vs-docs-cancel-title" tabindex="-1">
+                <h3 id="vs-docs-cancel-title" class="vs-docs__modal-title">Anulează semnarea</h3>
+                <p class="vs-docs__modal-body">
+                    Confirmi anularea documentului <strong>@ct.Name</strong>?
+                    Recipienții pendinți vor fi marcați ca respinși; acțiunea nu poate fi reluată.
+                </p>
+                <label class="vs-docs__modal-label" for="vs-docs-cancel-reason">Motiv (opțional)</label>
+                <textarea id="vs-docs-cancel-reason" class="vs-docs__modal-textarea"
+                          rows="3" maxlength="500"
+                          @bind="_cancelReason" @bind:event="oninput"></textarea>
+                <footer class="vs-docs__modal-foot">
+                    <Btn Variant="ghost" Size="sm" OnClick="CloseCancel" Disabled="@_actionBusy">Renunță</Btn>
+                    <Btn Variant="danger" Size="sm" OnClick="ConfirmCancelAsync" Disabled="@_actionBusy">
+                        @(_actionBusy ? "Se procesează..." : "Confirmă anularea")
+                    </Btn>
+                </footer>
+            </div>
+        </div>
+    }
+
+    @if (_deleteTarget is { } dt)
+    {
+        <div class="vs-docs__modal-backdrop" @onclick="CloseDelete" role="presentation">
+            <div class="vs-docs__modal" @onclick:stopPropagation="true" role="dialog" aria-modal="true"
+                 aria-labelledby="vs-docs-delete-title" tabindex="-1"
+                 @onkeydown="OnModalKeyDown" @ref="_deleteModalRef">
+                <button type="button" class="vs-docs__modal-close"
+                        @onclick="CloseDelete" aria-label="Închide" disabled="@_actionBusy">
+                    <Icon Name="x" Size="14"/>
+                </button>
+                <h3 id="vs-docs-delete-title" class="vs-docs__modal-title">Șterge documentul</h3>
+                <p class="vs-docs__modal-body">
+                    Confirmi ștergerea definitivă a <strong>@dt.Name</strong>?
+                    Vor fi șterse PDF-ul, recipienții, câmpurile de semnătură, cererile de
+                    semnare și fișierele semnate asociate. Acțiunea este ireversibilă.
+                </p>
+                <footer class="vs-docs__modal-foot">
+                    <Btn Variant="ghost" Size="sm" OnClick="CloseDelete" Disabled="@_actionBusy">Renunță</Btn>
+                    <Btn Variant="danger" Size="sm" OnClick="ConfirmDeleteAsync" Disabled="@_actionBusy">
+                        @(_actionBusy ? "Se procesează..." : "Confirmă ștergerea")
+                    </Btn>
+                </footer>
+            </div>
+        </div>
+    }
+
+    @if (!_loading && _total > 0)
+    {
+        <footer class="vs-docs__pager" aria-label="Paginație">
+            <span class="vs-docs__pager-info">
+                Pagina <strong>@_page</strong> din <strong>@_pageCount</strong> · @_total document@(_total == 1 ? "" : "e")
+            </span>
+            <div class="vs-docs__pager-buttons">
+                <Btn Variant="ghost" Size="sm" Icon="chevron-left"
+                     OnClick="PrevPageAsync" Disabled="@(_page <= 1)">Anterior</Btn>
+                <Btn Variant="ghost" Size="sm" Icon="chevron-right"
+                     OnClick="NextPageAsync" Disabled="@(_page >= _pageCount)">Următor</Btn>
+            </div>
+        </footer>
+    }
+</div>
+
+@code {
+    private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _searchDebounce;
+    private bool _loading = true;
+    private string? _error;
+
+    private string _search = "";
+    private string? _status;
+    private string? _level;
+    private string? _period;
+    private int _page = 1;
+    private const int PageSize = 20;
+    private int _total;
+    private int _pageCount => _total == 0 ? 1 : (int)Math.Ceiling(_total / (double)PageSize);
+
+    private IReadOnlyList<DocumentListItemDto> _items = Array.Empty<DocumentListItemDto>();
+
+    private record Chip(string? Value, string Label);
+
+    private static readonly Chip[] _statusChips = new[]
+    {
+        new Chip(null,         "Toate"),
+        new Chip("awaiting",   "În așteptare"),
+        new Chip("signed",     "Semnate"),
+        new Chip("declined",   "Respinse"),
+        new Chip("cancelled",  "Anulate"),
+        new Chip("failed",     "Eșec"),
+    };
+
+    private static readonly Chip[] _levelChips = new[]
+    {
+        new Chip(null,  "Toate niv."),
+        new Chip("QES", "QES"),
+        new Chip("AdES","AdES"),
+        new Chip("SES", "SES"),
+    };
+
+    private static readonly Chip[] _periodChips = new[]
+    {
+        new Chip(null,  "Tot timpul"),
+        new Chip("7d",  "7 zile"),
+        new Chip("30d", "30 zile"),
+        new Chip("90d", "90 zile"),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        ReadQueryString();
+        await LoadAsync();
+    }
+
+    private void ReadQueryString()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var qs = QueryHelpers.ParseQuery(uri.Query);
+        if (qs.TryGetValue("status",  out var sv)) _status = sv.ToString().ToLowerInvariant();
+        if (qs.TryGetValue("q",       out var qv)) _search = qv.ToString();
+        if (qs.TryGetValue("level",   out var lv)) _level  = lv.ToString();
+        if (qs.TryGetValue("period",  out var pv)) _period = pv.ToString().ToLowerInvariant();
+        if (qs.TryGetValue("page",    out var pg) && int.TryParse(pg.ToString(), out var pi) && pi > 0) _page = pi;
+    }
+
+    private async Task LoadAsync()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+
+        try
+        {
+            _loading = true;
+            _error = null;
+            StateHasChanged();
+
+            var url = BuildApiUrl();
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var page = await client.GetFromJsonAsync<PagedResultDto<DocumentListItemDto>>(url, ct);
+
+            _items = page?.Items ?? Array.Empty<DocumentListItemDto>();
+            _total = page?.Total ?? 0;
+
+            // Clamp current page if filter shrank the result set.
+            if (_page > _pageCount) { _page = _pageCount; }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Documents listing fetch failed");
+            _error = "Nu am putut încărca lista de documente. Verifică conexiunea cu API-ul.";
+            _items = Array.Empty<DocumentListItemDto>();
+            _total = 0;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string BuildApiUrl()
+    {
+        var qs = new Dictionary<string, string?>
+        {
+            ["page"] = _page.ToString(),
+            ["pageSize"] = PageSize.ToString(),
+        };
+        if (!string.IsNullOrWhiteSpace(_status)) qs["status"] = _status;
+        if (!string.IsNullOrWhiteSpace(_search)) qs["q"] = _search.Trim();
+        if (!string.IsNullOrWhiteSpace(_level))  qs["level"] = _level;
+        if (!string.IsNullOrWhiteSpace(_period)) qs["period"] = _period;
+        return QueryHelpers.AddQueryString("/api/documents", qs);
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _searchDebounce?.Cancel();
+        _searchDebounce?.Dispose();
+        _searchDebounce = new CancellationTokenSource();
+        var token = _searchDebounce.Token;
+        try
+        {
+            await Task.Delay(300, token);
+            _page = 1;
+            await LoadAsync();
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private Task SetStatusAsync(string? v) { _status = v; _page = 1; return LoadAsync(); }
+    private Task SetLevelAsync(string? v)  { _level  = v; _page = 1; return LoadAsync(); }
+    private Task SetPeriodAsync(string? v) { _period = v; _page = 1; return LoadAsync(); }
+
+    private Task ClearAllAsync()
+    {
+        _status = null; _level = null; _period = null; _search = ""; _page = 1;
+        return LoadAsync();
+    }
+
+    private async Task ReloadAsync() { await LoadAsync(); }
+
+    private Task PrevPageAsync()
+    {
+        if (_page <= 1) return Task.CompletedTask;
+        _page--;
+        return LoadAsync();
+    }
+
+    private Task NextPageAsync()
+    {
+        if (_page >= _pageCount) return Task.CompletedTask;
+        _page++;
+        return LoadAsync();
+    }
+
+    private bool HasAnyFilter() =>
+        !string.IsNullOrWhiteSpace(_status)
+        || !string.IsNullOrWhiteSpace(_level)
+        || !string.IsNullOrWhiteSpace(_period)
+        || !string.IsNullOrWhiteSpace(_search);
+
+    private void OpenViewer(Guid id) => Navigation.NavigateTo($"/documents/{id}");
+
+    // --- Row actions: Reminder + Cancel -----------------------------------
+
+    private bool _actionBusy;
+    private string? _toast;
+    private string _toastTone = "success";
+    private (Guid Id, string Name)? _cancelTarget;
+    private string _cancelReason = "";
+    private (Guid Id, string Name)? _deleteTarget;
+    private ElementReference _deleteModalRef;
+
+    private async Task OnModalKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            CloseDelete();
+            await Task.CompletedTask;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_deleteTarget is not null)
+        {
+            try { await _deleteModalRef.FocusAsync(); } catch { }
+        }
+    }
+
+    private async Task RemindAsync(Guid id)
+    {
+        if (_actionBusy) return;
+        _actionBusy = true;
+        StateHasChanged();
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.PostAsync($"/api/documents/{id}/remind", content: null);
+            if (resp.IsSuccessStatusCode)
+            {
+                ShowToast("Reminder trimis recipienților pendinți.", "success");
+                await LoadAsync();
+            }
+            else
+            {
+                ShowToast($"Reminder eșuat ({(int)resp.StatusCode}).", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Remind action failed");
+            ShowToast("Reminder eșuat — verifică conexiunea.", "danger");
+        }
+        finally
+        {
+            _actionBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RequestCancel(Guid id, string name)
+    {
+        _cancelTarget = (id, name);
+        _cancelReason = "";
+    }
+
+    private void CloseCancel()
+    {
+        if (_actionBusy) return;
+        _cancelTarget = null;
+        _cancelReason = "";
+    }
+
+    private void RequestDelete(Guid id, string name)
+    {
+        _deleteTarget = (id, name);
+    }
+
+    private void CloseDelete()
+    {
+        if (_actionBusy) return;
+        _deleteTarget = null;
+    }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (_deleteTarget is null || _actionBusy) return;
+        var target = _deleteTarget.Value;
+        _actionBusy = true;
+        StateHasChanged();
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.DeleteAsync($"/api/documents/{target.Id}");
+            if (resp.IsSuccessStatusCode)
+            {
+                _deleteTarget = null;
+                ShowToast("Document șters.", "success");
+                await LoadAsync();
+            }
+            else
+            {
+                ShowToast($"Ștergerea a eșuat ({(int)resp.StatusCode}).", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Delete action failed");
+            ShowToast("Ștergerea a eșuat — verifică conexiunea.", "danger");
+        }
+        finally
+        {
+            _actionBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmCancelAsync()
+    {
+        if (_cancelTarget is null || _actionBusy) return;
+        var target = _cancelTarget.Value;
+        _actionBusy = true;
+        StateHasChanged();
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.PostAsJsonAsync($"/api/documents/{target.Id}/cancel",
+                new { reason = string.IsNullOrWhiteSpace(_cancelReason) ? null : _cancelReason.Trim() });
+            if (resp.IsSuccessStatusCode)
+            {
+                _cancelTarget = null;
+                _cancelReason = "";
+                ShowToast("Document anulat.", "success");
+                await LoadAsync();
+            }
+            else
+            {
+                ShowToast($"Anularea a eșuat ({(int)resp.StatusCode}).", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Cancel action failed");
+            ShowToast("Anularea a eșuat — verifică conexiunea.", "danger");
+        }
+        finally
+        {
+            _actionBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private CancellationTokenSource? _toastCts;
+    private void ShowToast(string message, string tone)
+    {
+        _toast = message;
+        _toastTone = tone;
+        _toastCts?.Cancel();
+        _toastCts?.Dispose();
+        _toastCts = new CancellationTokenSource();
+        var token = _toastCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(3000, token);
+                _toast = null;
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException) { }
+        });
+    }
+
+    private record StatusPill(string Tone, string Label);
+    private static StatusPill StatusToPill(string s) => s.ToLowerInvariant() switch
+    {
+        "uploaded"  => new("info",    "Încărcat"),
+        "preparing" => new("info",    "Pregătire"),
+        "signing"   => new("info",    "Semnare"),
+        "awaiting"  => new("warning", "În așteptare"),
+        "pending"   => new("warning", "În așteptare"),
+        "signed"    => new("success", "Semnat"),
+        "embedded"  => new("success", "Semnat"),
+        "declined"  => new("danger",  "Respins"),
+        "cancelled" => new("neutral", "Anulat"),
+        "failed"    => new("danger",  "Eșec"),
+        _           => new("neutral", s)
+    };
+
+    private static string FormatRelative(DateTime utc)
+    {
+        var delta = DateTime.UtcNow - utc;
+        if (delta.TotalMinutes < 1) return "acum";
+        if (delta.TotalMinutes < 60) return $"acum {(int)delta.TotalMinutes}min";
+        if (delta.TotalHours < 24)   return $"acum {(int)delta.TotalHours}h";
+        if (delta.TotalDays < 2)     return "ieri";
+        if (delta.TotalDays < 7)     return $"acum {(int)delta.TotalDays} zile";
+        return utc.ToLocalTime().ToString("dd MMM");
+    }
+
+    public void Dispose()
+    {
+        _searchDebounce?.Cancel();
+        _searchDebounce?.Dispose();
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _toastCts?.Cancel();
+        _toastCts?.Dispose();
+    }
+}

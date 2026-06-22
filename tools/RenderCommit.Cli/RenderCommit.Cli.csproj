@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MasterSTI.RenderCommit</RootNamespace>
+    <AssemblyName>render-commit</AssemblyName>
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Managed PDFium wrapper. Native binary IS NOT loaded from this NuGet's
+         runtimes/ tree at runtime; PdfiumLoader.cs uses
+         NativeLibrary.SetDllImportResolver to redirect to tools/pdfium-v1/
+         per ADR-0008. The NuGet's native bits stay on disk but unused. -->
+    <PackageReference Include="PDFiumCore" Version="146.0.7678.1" />
+    <PackageReference Include="itext7" Version="9.6.0" />
+    <PackageReference Include="itext7.bouncy-castle-adapter" Version="9.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Source-link the algorithm files from MasterSTI.Api (single source of
+         truth). The CLI stays standalone (no ProjectReference) so the spike
+         keeps building without pulling in EF/MediatR/iText-PAdES/etc. -->
+    <Compile Include="..\..\src\MasterSTI.Api\Common\Rendering\MerkleRoot.cs"
+             Link="Rendering\MerkleRoot.cs" />
+    <Compile Include="..\..\src\MasterSTI.Api\Common\Rendering\RenderProfiles.cs"
+             Link="Rendering\RenderProfiles.cs" />
+    <Compile Include="..\..\src\MasterSTI.Api\Common\Rendering\PdfiumLoader.cs"
+             Link="Rendering\PdfiumLoader.cs" />
+    <Compile Include="..\..\src\MasterSTI.Api\Common\Rendering\RenderCommitment.cs"
+             Link="Rendering\RenderCommitment.cs" />
+  </ItemGroup>
+
+</Project>

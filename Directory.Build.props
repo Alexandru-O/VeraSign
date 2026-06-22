@@ -1,0 +1,37 @@
+<Project>
+
+  <!--
+    Repo-wide MSBuild defaults.
+
+    AndroidSdkDirectory / JavaSdkDirectory let the MAUI Wallet csproj build from any IDE
+    (Visual Studio, Rider) and from `dotnet build` without per-invocation -p: arguments.
+    Override per machine by setting ANDROID_HOME / JAVA_HOME env vars (those win) or by
+    editing this file locally.
+  -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-android' Or '$(TargetFrameworkIdentifier)' == 'MonoAndroid' Or $(TargetFrameworks.Contains('-android'))">
+    <AndroidSdkDirectory Condition="'$(AndroidSdkDirectory)' == '' And '$(ANDROID_HOME)' == ''">C:\Android</AndroidSdkDirectory>
+    <JavaSdkDirectory Condition="'$(JavaSdkDirectory)' == '' And '$(JAVA_HOME)' == ''">C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot</JavaSdkDirectory>
+  </PropertyGroup>
+
+  <!--
+    Per-persona obj/ + bin/ isolation for the MAUI Wallet only. Two parallel
+    `dotnet build -p:WalletPersona=Thea|Toma` invocations otherwise race on
+    obj/.../MasterSTI.Wallet.dll (CS2012). Scoping by MSBuildProjectName keeps
+    referenced projects (MasterSTI.Shared) on their default obj/ tree — passing
+    -p:BaseIntermediateOutputPath on the dotnet CLI cascades into ProjectRefs
+    and breaks DefaultItemExcludes (duplicate AssemblyInfo from stale obj/Release).
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'MasterSTI.Wallet' And '$(WalletPersona)' != ''">
+    <BaseIntermediateOutputPath>obj\$(WalletPersona)\</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin\$(WalletPersona)\</BaseOutputPath>
+    <!--
+      Default DefaultItemExcludes only covers $(BaseIntermediateOutputPath)/**
+      (= obj\Thea\**). The sibling persona's obj\Toma\** is NOT excluded so the
+      implicit Compile glob picks up its generated AssemblyInfo.cs and trips
+      CS0579. Force-exclude every obj\** and bin\** subtree to prevent
+      cross-persona contamination.
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+</Project>

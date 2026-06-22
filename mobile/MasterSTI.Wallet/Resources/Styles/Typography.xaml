@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    MasterSTI / VeraSign — font family resources v2.
+    Fonts registered in MauiProgram.cs ConfigureFonts(...).
+    Drop the TTF files into Resources/Fonts/ to render them; missing files
+    fall back to platform default.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Geist (sans, default UI) -->
+    <x:String x:Key="FontSans">Geist</x:String>
+    <x:String x:Key="FontSansMedium">GeistMedium</x:String>
+    <x:String x:Key="FontSansSemiBold">GeistSemiBold</x:String>
+    <x:String x:Key="FontSansBold">GeistBold</x:String>
+
+    <!-- Serif alias maps to sans — v2 design has no serif -->
+    <x:String x:Key="FontSerif">Geist</x:String>
+    <x:String x:Key="FontSerifItalic">Geist</x:String>
+
+    <!-- Geist Mono (hashes, fingerprints, timestamps) -->
+    <x:String x:Key="FontMono">GeistMono</x:String>
+    <x:String x:Key="FontMonoMedium">GeistMonoMedium</x:String>
+    <x:String x:Key="FontMonoSemiBold">GeistMonoMedium</x:String>
+
+</ResourceDictionary>

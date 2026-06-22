@@ -1,0 +1,39 @@
+@* Horizontal stepper. Mirrors Brand.jsx Stepper. *@
+
+<div class="vs-stepper">
+    @for (var i = 0; i < Steps.Count; i++)
+    {
+        var isDone    = i < CurrentIndex;
+        var isCurrent = i == CurrentIndex;
+        var stepClass = isDone ? "vs-stepper__node--done"
+                       : isCurrent ? "vs-stepper__node--current"
+                       : "vs-stepper__node--idle";
+        <div class="vs-stepper__step">
+            <div class="vs-stepper__node @stepClass">
+                @if (isDone)
+                {
+                    <Icon Name="check" Size="13"/>
+                }
+                else
+                {
+                    @((i + 1).ToString())
+                }
+            </div>
+            <span class="vs-stepper__label @(isCurrent ? "vs-stepper__label--current" : null)">
+                @Steps[i]
+            </span>
+        </div>
+        @if (i < Steps.Count - 1)
+        {
+            <div class="vs-stepper__bar @(isDone ? "vs-stepper__bar--done" : null)"></div>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>Step labels in order.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<string> Steps { get; set; } = Array.Empty<string>();
+
+    /// <summary>Zero-based index of the currently active step.</summary>
+    [Parameter] public int CurrentIndex { get; set; }
+}

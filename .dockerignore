@@ -1,0 +1,46 @@
+# The compose context is the repo root. Keep it lean so docker build is fast
+# and so we don't accidentally copy host build outputs into the image.
+
+# .NET / IDE
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.userosscache
+
+# git + CI
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Build outputs from start-all.ps1 publish flow
+publish/
+artifacts/
+out/
+**/logs/
+
+# Mobile project — needs Android workload that the dotnet/sdk:10.0 image doesn't ship.
+# It must NOT enter the SDK image's restore graph.
+mobile/
+
+# Tests we don't ship in any container image
+tests/MasterSTI.UnitTests/
+
+# Design assets / docs that aren't load-bearing for the runtime
+design_handoff_mastersti/
+docs/
+*.md
+!CLAUDE.md
+
+# Local secrets / state
+.env
+.env.*
+!.env.example
+storage/
+
+# OS noise
+.DS_Store
+Thumbs.db

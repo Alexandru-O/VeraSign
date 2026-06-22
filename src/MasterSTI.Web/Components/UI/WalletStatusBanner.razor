@@ -1,0 +1,128 @@
+@* WalletStatusBanner — EUDIW connection status banner shown on Dashboard.
+   Three visual states:
+     - Connected   : PID holder name, issued date, cnf.jwk thumbprint, expiry
+     - Expiring    : same data + amber tone when ExpiresAt <= 14d away
+     - Unenrolled  : CTA to enroll a wallet (null Info)
+   Component is purely presentational — caller decides which state to render. *@
+
+<div class="vs-walletb vs-walletb--@State" role="status" aria-live="polite">
+    <div class="vs-walletb__ic" aria-hidden="true">
+        <Icon Name="wallet" Size="22"/>
+    </div>
+
+    <div class="vs-walletb__body">
+        @if (Info is not null)
+        {
+            <div class="vs-walletb__row1">
+                <Pill Tone="@_pillTone" Dot="true">@_pillLabel</Pill>
+                <span class="vs-walletb__name">@Info.HolderName</span>
+                <span class="vs-walletb__role-hint"
+                      tabindex="0"
+                      role="img"
+                      aria-label="@_roleHintText"
+                      title="@_roleHintText">
+                    <Icon Name="info" Size="12"/>
+                </span>
+                <span class="vs-walletb__sep" aria-hidden="true">·</span>
+                <span class="vs-walletb__meta">PID emis @Info.IssuedAt.ToString("yyyy-MM-dd")</span>
+            </div>
+            <div class="vs-walletb__row2">
+                <span class="vs-walletb__kv">
+                    <span class="vs-walletb__k">cnf.jwk:</span>
+                    <code class="vs-walletb__thumb" title="@Info.CnfThumbprintFull">@_shortThumb</code>
+                </span>
+                <span class="vs-walletb__sep" aria-hidden="true">·</span>
+                <span class="vs-walletb__kv">
+                    <span class="vs-walletb__k">expira</span>
+                    <span class="vs-walletb__v">@Info.ExpiresAt.ToString("yyyy-MM-dd")</span>
+                    @if (State == "expiring")
+                    {
+                        <span class="vs-walletb__expiry-hint">(@_daysLeft zile)</span>
+                    }
+                </span>
+                <span class="vs-walletb__sep" aria-hidden="true">·</span>
+                <span class="vs-walletb__badges">
+                    <Pill Tone="neutral">EUDIW</Pill>
+                    <Pill Tone="neutral">ARF 1.4</Pill>
+                </span>
+            </div>
+        }
+        else
+        {
+            <div class="vs-walletb__row1">
+                <Pill Tone="warning" Dot="true">Wallet neînrolat</Pill>
+                <span class="vs-walletb__name">Conectează un EU Wallet pentru semnături QES</span>
+            </div>
+            <div class="vs-walletb__row2 vs-walletb__row2--muted">
+                Scanează QR-ul de înrolare cu aplicația mobilă pentru a activa
+                autentificarea bazată pe identitate europeană (eIDAS 2.0).
+            </div>
+        }
+    </div>
+
+    <div class="vs-walletb__actions">
+        <Btn Variant="ghost" Size="sm" OnClick="HandleCta">
+            @(Info is null ? "Conectează" : "Detalii")
+            <Icon Name="arrow-right" Size="14"/>
+        </Btn>
+    </div>
+</div>
+
+@code {
+    /// <summary>PID claims + key-binding info loaded from API. Null = no wallet enrolled.</summary>
+    [Parameter] public WalletPidInfo? Info { get; set; }
+
+    /// <summary>Threshold in days under which the banner switches to "expiring" tone.</summary>
+    [Parameter] public int ExpiringThresholdDays { get; set; } = 14;
+
+    /// <summary>Click-through for the trailing CTA (enroll vs. details). Caller wires navigation.</summary>
+    [Parameter] public EventCallback OnCtaClick { get; set; }
+
+    private string State => Info switch
+    {
+        null => "unenrolled",
+        _ when _daysLeft <= ExpiringThresholdDays => "expiring",
+        _ => "connected"
+    };
+
+    private int _daysLeft => Info is null ? int.MaxValue : (int)(Info.ExpiresAt.Date - DateTime.UtcNow.Date).TotalDays;
+
+    private string _shortThumb => Info is null || string.IsNullOrEmpty(Info.CnfThumbprintFull)
+        ? "—"
+        : Info.CnfThumbprintFull.Length <= 12
+            ? Info.CnfThumbprintFull
+            : $"{Info.CnfThumbprintFull[..4]}…{Info.CnfThumbprintFull[^4..]}";
+
+    private string _pillTone => State switch
+    {
+        "connected" => "success",
+        "expiring"  => "warning",
+        _           => "danger"
+    };
+
+    private string _pillLabel => State switch
+    {
+        "connected" => "EUDIW conectat",
+        "expiring"  => "Wallet expiră curând",
+        _           => "Wallet neînrolat"
+    };
+
+    // Disambiguates the banner: the enrolled wallet belongs to the *signed-in* user
+    // (used for password-less login, Phase 12). Recipients use their own wallets when
+    // they sign — this banner does not represent the signer's wallet for outbound docs.
+    private const string _roleHintText =
+        "Wallet-ul tău EUDIW. Folosit pentru autentificare password-less în VeraSign. " +
+        "Semnatarii primesc invitație și folosesc wallet-uri proprii pentru a semna.";
+
+    private async Task HandleCta()
+    {
+        if (OnCtaClick.HasDelegate)
+            await OnCtaClick.InvokeAsync();
+    }
+
+    public sealed record WalletPidInfo(
+        string HolderName,
+        DateTime IssuedAt,
+        DateTime ExpiresAt,
+        string CnfThumbprintFull);
+}

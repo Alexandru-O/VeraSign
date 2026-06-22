@@ -1,0 +1,208 @@
+@page "/settings"
+@rendermode InteractiveServer
+@using System.Net.Http.Json
+@using MasterSTI.Shared.DTOs.Audit
+@using MasterSTI.Shared.DTOs.Dashboard
+@inject IHttpClientFactory HttpFactory
+
+<PageTitle>VeraSign · Setări</PageTitle>
+<PageHeader Title="Setări" Breadcrumb="VeraSign · Setări"/>
+
+@* WSettings (v2) — tab strip + certificate card + TSP list.
+   Mirrors prototype/components/WebScreens.jsx WSettings (lines 309-365). *@
+
+<div class="vs-set2">
+    <div class="vs-set2__tabs">
+        @for (var i = 0; i < _tabs.Length; i++)
+        {
+            var idx = i;
+            var on = idx == _activeTab;
+            <button class="vs-set2__tab @(on ? "vs-set2__tab--on" : null)"
+                    @onclick="@(() => _activeTab = idx)">@_tabs[idx]</button>
+        }
+    </div>
+
+    <div class="vs-set2__panel">
+        @if (_activeTab == 4)
+        {
+            <Card>
+                <div class="vs-set2__cert-row">
+                    <div>
+                        <div class="vs-set2__cert-title">Jurnal audit · pe organizație</div>
+                        <div class="vs-set2__cert-sub">Evenimente append-only — toate documentele organizației tale.</div>
+                    </div>
+                    <div class="vs-set2__audit-filters">
+                        @foreach (var p in _periods)
+                        {
+                            var pp = p;
+                            <button class="vs-set2__chip @(_period == pp.Key ? "vs-set2__chip--on" : null)"
+                                    @onclick="@(() => SetPeriodAsync(pp.Key))"
+                                    type="button">@pp.Label</button>
+                        }
+                    </div>
+                </div>
+
+                @if (_loading)
+                {
+                    <div class="vs-set2__audit-empty">Se încarcă&hellip;</div>
+                }
+                else if (_events.Count == 0)
+                {
+                    <div class="vs-set2__audit-empty">Nicio activitate în perioada selectată.</div>
+                }
+                else
+                {
+                    <table class="vs-set2__audit-table">
+                        <thead>
+                            <tr>
+                                <th>Timp</th>
+                                <th>Document</th>
+                                <th>Eveniment</th>
+                                <th>Actor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var e in _events)
+                            {
+                                <tr>
+                                    <td class="mono" style="font-size:11px;">@e.Timestamp.ToString("dd MMM HH:mm:ss")</td>
+                                    <td title="@e.DocumentId">@TrimName(e.DocumentFileName)</td>
+                                    <td><Pill Tone="@EventTone(e.EventType)">@e.EventType</Pill></td>
+                                    <td class="mono" style="font-size:11px;">@TrimActor(e.Actor)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="vs-set2__audit-foot">
+                        @_events.Count din @_total evenimente
+                    </div>
+                }
+            </Card>
+        }
+        else
+        {
+            <Card>
+                <div class="vs-set2__cert-row">
+                    <div>
+                        <div class="vs-set2__cert-title">Certificat QES activ</div>
+                        <div class="vs-set2__cert-sub">Emis de certSIGN ROOT G3 · valabil 1097 zile</div>
+                    </div>
+                    <Pill Tone="success" Dot="true">Activ</Pill>
+                </div>
+                <div class="vs-set2__cert-rows">
+                    <div><span>Subiect</span><span>CN=VeraSign Demo Admin, O=VeraSign Demo SRL</span></div>
+                    <div><span>Serial</span><span class="mono" style="font-size:11px;">2A:F8:C1:90:42:B3</span></div>
+                    <div><span>SHA-1</span><span class="mono" style="font-size:11px;">d4:f1:8a:b3:c5:90:e7:42</span></div>
+                    <div><span>Valid de la</span><span>22 apr 2025</span></div>
+                    <div><span>Valid până la</span><span>22 apr 2028</span></div>
+                </div>
+            </Card>
+
+            <Card>
+                <div class="vs-set2__cert-title">TSP-uri configurate</div>
+                <div class="vs-set2__cert-sub" style="margin-bottom:16px;">Furnizori de servicii calificate eIDAS pentru semnare la distanță.</div>
+                @for (var i = 0; i < _tsps.Length; i++)
+                {
+                    var t = _tsps[i];
+                    <div class="vs-set2__tsp @(i == 0 ? null : "vs-set2__tsp--sep")">
+                        <div class="vs-set2__tsp-ic"><Icon Name="shield" Size="16"/></div>
+                        <div class="vs-set2__tsp-mid">
+                            <div class="vs-set2__tsp-name">@t.Name</div>
+                            <div class="vs-set2__tsp-cc mono">@t.Country</div>
+                        </div>
+                        @if (t.IsDefault)
+                        {
+                            <Pill Tone="info">Implicit</Pill>
+                        }
+                    </div>
+                }
+            </Card>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] _tabs = { "Cont", "Certificate", "TSP-uri", "API", "Audit" };
+    private int _activeTab = 1;
+
+    private record Tsp(string Name, string Country, bool IsDefault);
+    private static readonly Tsp[] _tsps = new[]
+    {
+        new Tsp("certSIGN S.A.", "RO", true),
+        new Tsp("Trans Sped",    "RO", false),
+        new Tsp("D-Trust",       "DE", false),
+    };
+
+    private record PeriodOpt(string Key, string Label);
+    private static readonly PeriodOpt[] _periods = new[]
+    {
+        new PeriodOpt("today", "Azi"),
+        new PeriodOpt("7d",    "7 zile"),
+        new PeriodOpt("30d",   "30 zile"),
+        new PeriodOpt("all",   "Tot"),
+    };
+
+    private string _period = "7d";
+    private bool _loading;
+    private int _total;
+    private List<AuditEventListItemDto> _events = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Lazy-load audit only when tab is opened. Re-check each render is cheap.
+        if (_activeTab == 4 && _events.Count == 0 && !_loading)
+            await LoadAuditAsync();
+    }
+
+    private async Task SetPeriodAsync(string period)
+    {
+        if (_period == period) return;
+        _period = period;
+        await LoadAuditAsync();
+    }
+
+    private async Task LoadAuditAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.GetFromJsonAsync<PagedResultDto<AuditEventListItemDto>>(
+                $"/api/audit?period={_period}&pageSize=100");
+            if (resp is not null)
+            {
+                _events = resp.Items.ToList();
+                _total = resp.Total;
+            }
+        }
+        catch
+        {
+            _events = new();
+            _total = 0;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private static string TrimName(string? s)
+        => string.IsNullOrEmpty(s) ? "—" : (s.Length > 40 ? s[..40] + "…" : s);
+
+    private static string TrimActor(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return "system";
+        if (Guid.TryParse(s, out var g)) return g.ToString()[..8];
+        return s.Length > 22 ? s[..22] + "…" : s;
+    }
+
+    private static string EventTone(string type) => type switch
+    {
+        "Signed" or "Embedded" or "RecipientsAdded" => "success",
+        "Cancelled" or "Failed" => "danger",
+        "Notified" or "Reminded"  => "info",
+        _ => "neutral",
+    };
+}

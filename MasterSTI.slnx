@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/mobile/">
+    <Project Path="mobile/MasterSTI.Wallet/MasterSTI.Wallet.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/MasterSTI.Api/MasterSTI.Api.csproj" />
+    <Project Path="src/MasterSTI.Shared/MasterSTI.Shared.csproj" />
+    <Project Path="src/MasterSTI.Web/MasterSTI.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MasterSTI.Mock.Issuer/MasterSTI.Mock.Issuer.csproj" />
+    <Project Path="tests/MasterSTI.Mock.Qtsp/MasterSTI.Mock.Qtsp.csproj" />
+    <Project Path="tests/MasterSTI.UnitTests/MasterSTI.UnitTests.csproj" />
+  </Folder>
+</Solution>

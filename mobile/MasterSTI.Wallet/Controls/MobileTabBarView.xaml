@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    MobileTabBarView v2 — bottom tab bar for the wallet's home flows.
+    Mirrors prototype/components/MobileScreens.jsx MobileTabBar.
+    Active = "inbox" | "wallet" | "history" | "settings".
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Controls.MobileTabBarView">
+
+    <Grid HorizontalOptions="Fill"
+          VerticalOptions="End">
+        <!-- Top hairline border -->
+        <BoxView Color="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                 HeightRequest="1"
+                 VerticalOptions="Start"
+                 HorizontalOptions="Fill" />
+
+        <Border BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                StrokeThickness="0"
+                Padding="0,10,0,16"
+                Margin="0,1,0,0"
+                StrokeShape="RoundRectangle 0">
+            <Grid ColumnDefinitions="*,*,*,*"
+                  ColumnSpacing="0">
+
+                <VerticalStackLayout x:Name="TabInbox"
+                                     Grid.Column="0"
+                                     Spacing="4"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnInboxTapped" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <controls:IconView x:Name="InboxIcon" Name="inbox" Size="20" />
+                    <Label x:Name="InboxLabel"
+                           Text="Cereri"
+                           FontSize="10"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout x:Name="TabWallet"
+                                     Grid.Column="1"
+                                     Spacing="4"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnWalletTapped" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <controls:IconView x:Name="WalletIcon" Name="wallet" Size="20" />
+                    <Label x:Name="WalletLabel"
+                           Text="Wallet"
+                           FontSize="10"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout x:Name="TabHistory"
+                                     Grid.Column="2"
+                                     Spacing="4"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnHistoryTapped" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <controls:IconView x:Name="HistoryIcon" Name="history" Size="20" />
+                    <Label x:Name="HistoryLabel"
+                           Text="Istoric"
+                           FontSize="10"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout x:Name="TabSettings"
+                                     Grid.Column="3"
+                                     Spacing="4"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSettingsTapped" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <controls:IconView x:Name="SettingsIcon" Name="settings" Size="20" />
+                    <Label x:Name="SettingsLabel"
+                           Text="Setări"
+                           FontSize="10"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+    </Grid>
+
+</ContentView>

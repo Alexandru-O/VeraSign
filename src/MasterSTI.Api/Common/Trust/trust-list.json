@@ -1,0 +1,97 @@
+{
+  "source": "https://ec.europa.eu/tools/lotl/eu-lotl.xml",
+  "snapshotTakenAt": "2026-05-12T00:00:00Z",
+  "scheme": "EU LOTL (curated subset — 15 well-known QTSPs)",
+  "tsps": [
+    {
+      "country": "RO",
+      "tspName": "certSIGN S.A.",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=certSIGN", "CN=certSIGN Qualified"]
+    },
+    {
+      "country": "RO",
+      "tspName": "DIGISIGN S.A.",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=DIGISIGN", "CN=DigiSign Qualified"]
+    },
+    {
+      "country": "RO",
+      "tspName": "Centrul de Calcul S.A. (AlfaSign)",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=Centrul de Calcul", "CN=AlfaSign"]
+    },
+    {
+      "country": "RO",
+      "tspName": "Trans Sped S.R.L.",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=Trans Sped", "CN=Trans Sped Qualified"]
+    },
+    {
+      "country": "DE",
+      "tspName": "D-Trust GmbH",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=D-Trust GmbH", "CN=D-TRUST"]
+    },
+    {
+      "country": "DE",
+      "tspName": "Deutsche Telekom Security GmbH",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=Deutsche Telekom Security", "CN=TeleSec"]
+    },
+    {
+      "country": "IT",
+      "tspName": "Namirial S.p.A.",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=Namirial", "CN=Namirial CA"]
+    },
+    {
+      "country": "IT",
+      "tspName": "InfoCert S.p.A.",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=InfoCert", "CN=InfoCert Qualified"]
+    },
+    {
+      "country": "IT",
+      "tspName": "Aruba PEC S.p.A.",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=Aruba PEC", "CN=ArubaPEC"]
+    },
+    {
+      "country": "NO",
+      "tspName": "Buypass AS",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=Buypass AS", "CN=Buypass Class 3"]
+    },
+    {
+      "country": "CH",
+      "tspName": "SwissSign AG",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=SwissSign AG", "CN=SwissSign Qualified"]
+    },
+    {
+      "country": "PL",
+      "tspName": "Asseco Data Systems S.A.",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=Asseco Data Systems", "CN=Certum Qualified"]
+    },
+    {
+      "country": "ES",
+      "tspName": "Fábrica Nacional de Moneda y Timbre (FNMT)",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=FNMT", "OU=FNMT-RCM", "CN=AC FNMT"]
+    },
+    {
+      "country": "FR",
+      "tspName": "ChamberSign France",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=ChamberSign", "CN=ChamberSign Qualified"]
+    },
+    {
+      "country": "AT",
+      "tspName": "A-Trust Gesellschaft für Sicherheitssysteme im elektronischen Datenverkehr GmbH",
+      "serviceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+      "subjectMatchers": ["O=A-Trust", "CN=a-sign-Premium"]
+    }
+  ]
+}

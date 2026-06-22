@@ -1,0 +1,292 @@
+@page "/templates"
+@rendermode InteractiveServer
+@using MasterSTI.Shared.DTOs.Templates
+@using MasterSTI.Shared.DTOs.Documents
+@using MasterSTI.Web.Components.Pages.TemplatesParts
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>VeraSign · Șabloane</PageTitle>
+<PageHeader Title="Șabloane de documente" Breadcrumb="Șabloane"/>
+
+@* W6 TemplatesScreen — filter chips + 3-column card grid, fully wired to /api/templates. *@
+
+<div class="vs-tpl">
+    <div class="vs-tpl__filters">
+        @for (var i = 0; i < TemplateConstants.FilterChips.Length; i++)
+        {
+            var idx = i;
+            var c = TemplateConstants.FilterChips[idx];
+            var on = _activeCategory == c;
+            <button class="vs-tpl__chip @(on ? "vs-tpl__chip--on" : null)"
+                    @onclick="@(() => _activeCategory = c)">@c</button>
+        }
+        <div class="vs-tpl__filters-spacer"></div>
+        <Btn Icon="plus" OnClick="OpenNewDialog">Șablon nou</Btn>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="vs-tpl__grid">
+            @for (var i = 0; i < 6; i++)
+            {
+                <Card Padding="18" AdditionalClass="vs-tpl__skeleton">
+                    <div class="vs-tpl__thumb vs-tpl__thumb--skeleton"></div>
+                    <div class="vs-tpl__skel-line vs-tpl__skel-line--cat"></div>
+                    <div class="vs-tpl__skel-line vs-tpl__skel-line--title"></div>
+                    <div class="vs-tpl__skel-line vs-tpl__skel-line--desc"></div>
+                    <div class="vs-tpl__skel-line vs-tpl__skel-line--desc-short"></div>
+                </Card>
+            }
+        </div>
+    }
+    else if (_filtered.Count == 0)
+    {
+        <Card Padding="32" AdditionalClass="vs-tpl__empty">
+            <div class="vs-tpl__empty-ic"><Icon Name="settings" Size="22"/></div>
+            <div class="vs-tpl__empty-title">Nu există șabloane în această categorie</div>
+            <div class="vs-tpl__empty-sub">Începe prin a încărca un PDF model.</div>
+            <Btn Icon="plus" OnClick="OpenNewDialog">Adaugă primul șablon</Btn>
+        </Card>
+    }
+    else
+    {
+        <div class="vs-tpl__grid">
+            @foreach (var t in _filtered)
+            {
+                var item = t;
+                <Card Padding="18">
+                    <div class="vs-tpl__thumb">
+                        @for (var j = 0; j < 6; j++)
+                        {
+                            var w = j == 5 ? "60%" : "100%";
+                            <div class="vs-tpl__thumb-line" style="width:@w;"></div>
+                        }
+                    </div>
+                    <div class="vs-tpl__cat-row">
+                        <div class="vs-tpl__cat">@TemplateConstants.CategoryLabel(item.Category)</div>
+                        <button class="vs-tpl__delete"
+                                title="Șterge șablon"
+                                aria-label="Șterge șablon"
+                                @onclick="@(() => RequestDelete(item))">
+                            <Icon Name="x" Size="14"/>
+                        </button>
+                    </div>
+                    <div class="vs-tpl__title">@item.Title</div>
+                    <div class="vs-tpl__desc">@(string.IsNullOrEmpty(item.Description) ? "—" : item.Description)</div>
+                    <div class="vs-tpl__used"><Icon Name="users" Size="13"/> @item.UsageCount folosit</div>
+                    <div class="vs-tpl__actions">
+                        <Btn Variant="ghost" Size="sm" Icon="settings" AdditionalClass="vs-tpl__btn"
+                             OnClick="@(() => OpenEditDialog(item))">Detalii</Btn>
+                        <Btn Variant="secondary" Size="sm" Icon="pen" AdditionalClass="vs-tpl__btn"
+                             OnClick="@(() => EditContent(item))">Conținut</Btn>
+                        <Btn Size="sm" AdditionalClass="vs-tpl__btn"
+                             OnClick="@(() => UseTemplate(item))"
+                             Loading="@(_useBusyId == item.Id)">Folosește</Btn>
+                    </div>
+                </Card>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_listError))
+    {
+        <div class="vs-tpl__error" role="alert">@_listError</div>
+    }
+</div>
+
+@if (_showNewDialog)
+{
+    <NewTemplateDialog OnClose="CloseDialogs" OnCreated="HandleCreated"/>
+}
+
+@if (_editing is not null)
+{
+    <EditTemplateDialog TemplateId="_editing.Id"
+                       InitialTitle="@_editing.Title"
+                       InitialDescription="@_editing.Description"
+                       InitialCategory="@_editing.Category"
+                       InitialLevel="@_editing.DefaultLevel"
+                       OnClose="CloseDialogs"
+                       OnSaved="HandleSaved"/>
+}
+
+@if (_deleting is not null)
+{
+    <div class="vs-modal__backdrop" @onclick="CloseDialogs">
+        <div class="vs-modal__box vs-modal__box--confirm" @onclick:stopPropagation="true">
+            <div class="vs-modal__head">
+                <div>
+                    <div class="vs-modal__title">Ștergi șablonul?</div>
+                    <div class="vs-modal__sub">@_deleting.Title</div>
+                </div>
+                <button class="vs-modal__close" @onclick="CloseDialogs" aria-label="Închide" type="button">
+                    <Icon Name="x" Size="16"/>
+                </button>
+            </div>
+            <div class="vs-modal__body vs-modal__body--confirm">
+                <p>Această acțiune marchează șablonul ca șters și îl scoate din listă. Nu poate fi reluată din interfață.</p>
+            </div>
+            <div class="vs-modal__foot">
+                <Btn Variant="ghost" OnClick="CloseDialogs">Anulează</Btn>
+                <Btn Variant="danger" OnClick="ConfirmDelete" Loading="_deleteBusy">Șterge</Btn>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _activeCategory = "Toate";
+    private List<TemplateDto> _items = new();
+    private bool _loading = true;
+    private string? _listError;
+
+    private bool _showNewDialog;
+    private TemplateDto? _editing;
+    private TemplateDto? _deleting;
+    private bool _deleteBusy;
+    private Guid? _useBusyId;
+
+    private List<TemplateDto> _filtered =>
+        _activeCategory == "Toate"
+            ? _items
+            : _items.Where(t => TemplateConstants.CategoryLabel(t.Category) == _activeCategory).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _listError = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.GetAsync("/api/templates");
+            if (!resp.IsSuccessStatusCode)
+            {
+                _listError = $"Nu am putut încărca șabloanele ({(int)resp.StatusCode}).";
+                _items = new();
+                return;
+            }
+
+            var rows = await resp.Content.ReadFromJsonAsync<List<TemplateDto>>() ?? new();
+            _items = rows;
+        }
+        catch (Exception ex)
+        {
+            _listError = $"Eroare: {ex.Message}";
+            _items = new();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenNewDialog()
+    {
+        _showNewDialog = true;
+        _editing = null;
+        _deleting = null;
+    }
+
+    private void OpenEditDialog(TemplateDto t)
+    {
+        _editing = t;
+        _showNewDialog = false;
+        _deleting = null;
+    }
+
+    private void RequestDelete(TemplateDto t)
+    {
+        _deleting = t;
+        _showNewDialog = false;
+        _editing = null;
+    }
+
+    private void CloseDialogs()
+    {
+        _showNewDialog = false;
+        _editing = null;
+        _deleting = null;
+    }
+
+    private async Task HandleCreated()
+    {
+        CloseDialogs();
+        await LoadAsync();
+    }
+
+    private async Task HandleSaved()
+    {
+        CloseDialogs();
+        await LoadAsync();
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (_deleting is null) return;
+        _deleteBusy = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.DeleteAsync($"/api/templates/{_deleting.Id}");
+            if (!resp.IsSuccessStatusCode)
+            {
+                _listError = $"Ștergerea a eșuat ({(int)resp.StatusCode}).";
+            }
+            CloseDialogs();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _listError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _deleteBusy = false;
+        }
+    }
+
+    private void EditContent(TemplateDto t)
+    {
+        Navigation.NavigateTo($"/templates/{t.Id}/edit-content");
+    }
+
+    private async Task UseTemplate(TemplateDto t)
+    {
+        if (_useBusyId is not null) return;
+        _useBusyId = t.Id;
+        _listError = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.PostAsync($"/api/documents/from-template/{t.Id}", content: null);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _listError = $"Nu am putut crea documentul ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            var body = await resp.Content.ReadFromJsonAsync<DocumentFromTemplateResponse>();
+            if (body is null)
+            {
+                _listError = "Răspuns invalid de la server.";
+                return;
+            }
+
+            Navigation.NavigateTo($"/documents/{body.DocumentId}/recipients");
+        }
+        catch (Exception ex)
+        {
+            _listError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _useBusyId = null;
+        }
+    }
+}

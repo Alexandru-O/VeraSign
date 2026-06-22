@@ -1,0 +1,90 @@
+@* WeekChart — inline-SVG bar chart for 7 daily values with header (delta %)
+   and per-bar accessible labels. Pure presentational; caller supplies values
+   and labels. The series is later sourced from GET /api/dashboard/stats?range=7d. *@
+
+<section class="vs-wkc" aria-labelledby="vs-wkc-title">
+    <header class="vs-wkc__head">
+        <div>
+            <h2 id="vs-wkc-title" class="vs-wkc__title">@Title</h2>
+            <p class="vs-wkc__sub">
+                <span class="vs-wkc__total">@_total</span>
+                <span class="vs-wkc__total-label">@TotalLabel</span>
+            </p>
+        </div>
+        @if (_deltaPct is { } d)
+        {
+            <Pill Tone="@(d >= 0 ? "success" : "danger")" Dot="true">
+                @(d >= 0 ? "↗" : "↘") @(Math.Abs(d).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%
+            </Pill>
+        }
+    </header>
+
+    <div class="vs-wkc__chart" role="img" aria-label="@_ariaSummary">
+        <svg viewBox="0 0 @_vbWidth @_vbHeight" preserveAspectRatio="none" class="vs-wkc__svg">
+            <g class="vs-wkc__grid">
+                <line x1="0"  y1="@_chartH" x2="@_vbWidth" y2="@_chartH"/>
+                <line x1="0"  y1="@(_chartH * 0.5)" x2="@_vbWidth" y2="@(_chartH * 0.5)" class="vs-wkc__grid--mid"/>
+            </g>
+            @for (var i = 0; i < Values.Count; i++)
+            {
+                var v = Values[i];
+                var h = _max == 0 ? 0 : (double)v / _max * (_chartH - 4);
+                var x = _padding + i * (_barW + _gap);
+                var y = _chartH - h;
+                var isMax = v == _max;
+                var label = i < Labels.Count ? Labels[i] : (i + 1).ToString();
+                var cellCx = x + _barW / 2;
+                var tip = $"{label}: {v} {TotalLabel}";
+                <g class="vs-wkc__cell" tabindex="0" role="img" aria-label="@tip" focusable="true">
+                    <rect class="vs-wkc__bar @(isMax ? "vs-wkc__bar--peak" : null)"
+                          x="@F(x)" y="@F(y)" width="@F(_barW)" height="@F(h)"
+                          rx="2" ry="2">
+                        <title>@tip</title>
+                    </rect>
+                    <rect class="vs-wkc__hit"
+                          x="@F(x - _gap / 2)" y="0"
+                          width="@F(_barW + _gap)" height="@F(_chartH)"/>
+                    <text class="vs-wkc__tip"
+                          x="@F(cellCx)" y="@F(Math.Max(10, y - 4))"
+                          text-anchor="middle">@v</text>
+                </g>
+            }
+        </svg>
+        <div class="vs-wkc__labels" aria-hidden="true">
+            @for (var i = 0; i < Labels.Count; i++)
+            {
+                <span class="vs-wkc__label">@Labels[i]</span>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Activitate 7 zile";
+    [Parameter] public string TotalLabel { get; set; } = "semnări";
+    [Parameter] public IReadOnlyList<int> Values { get; set; } = Array.Empty<int>();
+    [Parameter] public IReadOnlyList<string> Labels { get; set; } = Array.Empty<string>();
+    /// <summary>Optional previous-period total used to compute the delta pill.</summary>
+    [Parameter] public int? PreviousTotal { get; set; }
+
+    private const double _padding = 4;
+    private const double _gap = 6;
+    private const double _barW = 14;
+    private const double _chartH = 64;
+    private double _vbWidth => _padding * 2 + Values.Count * _barW + Math.Max(0, Values.Count - 1) * _gap;
+    private double _vbHeight => _chartH;
+
+    private int _max => Values.Count == 0 ? 0 : Values.Max();
+    private int _total => Values.Sum();
+    private double? _deltaPct =>
+        PreviousTotal is int prev && prev > 0
+            ? Math.Round((double)(_total - prev) / prev * 100.0, 1)
+            : null;
+
+    private string _ariaSummary =>
+        Values.Count == 0
+            ? "Niciun grafic disponibil"
+            : $"Activitate pe {Values.Count} zile: total {_total} {TotalLabel}, vârf {_max}.";
+
+    private static string F(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}

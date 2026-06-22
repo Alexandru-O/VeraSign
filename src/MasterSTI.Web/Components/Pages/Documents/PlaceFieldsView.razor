@@ -1,0 +1,423 @@
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@using System.Net.Http.Json
+@using Microsoft.JSInterop
+@using MasterSTI.Shared.DTOs.Documents
+@inject IJSRuntime JS
+@inject UiConfig UiCfg
+@inject IHttpClientFactory HttpFactory
+
+@* Field-placement editor — 3-col split (toolbox / canvas / list).
+   Real-doc branch renders the PDF via PDF.js (verasignPlaceFields.mount)
+   so each page is its own positioned wrapper and signature markers scroll
+   with the page content. Mock branch (no DocumentId) keeps the legacy
+   Blazor-only canvas with a static fallback document. *@
+
+<div class="vs-pf">
+    <Card Padding="16">
+        <div class="vs-pf__eyebrow">Instrumente</div>
+        <div class="vs-pf__tools">
+            @foreach (var tool in _tools)
+            {
+                var on = _tool == tool.Id && _placing;
+                <button class="vs-pf__tool @(on ? "vs-pf__tool--on" : null)"
+                        @onclick="@(() => ActivateTool(tool.Id))">
+                    <Icon Name="@tool.Icon" Size="15"/>
+                    @tool.Label
+                </button>
+            }
+        </div>
+
+        @if (_recipients.Count > 0)
+        {
+            <div class="vs-pf__eyebrow vs-pf__eyebrow--mt">Pentru semnatar</div>
+            <select class="vs-pf__signer"
+                    value="@(_activeRecipientId?.ToString())"
+                    @onchange="OnActiveRecipientChanged"
+                    aria-label="Semnatar țintă">
+                @foreach (var r in _recipients)
+                {
+                    <option value="@r.Id">@r.Name</option>
+                }
+            </select>
+        }
+
+        <div class="vs-pf__hint">
+            @if (_placing)
+            {
+                <strong>Plasare activă (@_tool)</strong><br />
+                <text>Dă click oriunde pe document pentru a plasa câmpul. Apasă Esc sau alege alt instrument pentru a anula.</text>
+            }
+            else
+            {
+                <text>Apasă un instrument apoi click pe document. În rest poți defila și mări PDF-ul liber.</text>
+            }
+        </div>
+    </Card>
+
+    <Card Padding="0" AdditionalClass="vs-pf__canvas-card">
+        <div class="vs-pf__canvas-head">
+            <span class="vs-pf__file">@FileName</span>
+            @if (_pageCount > 0)
+            {
+                <span>· @_pageCount @(_pageCount == 1 ? "pagină" : "pagini") ·</span>
+            }
+            <div class="vs-pf__zoom">
+                <button class="vs-pf__zoom-btn">−</button>
+                <span class="vs-pf__zoom-val">100%</span>
+                <button class="vs-pf__zoom-btn">+</button>
+            </div>
+        </div>
+        <div class="vs-pf__canvas-bg">
+            @if (DocumentId is not null && DocumentId != Guid.Empty)
+            {
+                <div class="vs-pf__canvas vs-pf__canvas--scroll @(_placing ? "vs-pf__canvas--placing" : null)" id="vs-pf-canvas">
+                    <div class="vs-pf__pdf-host" id="vs-pf-pdf-host" @ref="_hostRef"></div>
+                </div>
+            }
+            else
+            {
+                <div class="vs-pf__canvas @(_placing ? "vs-pf__canvas--placing" : null)" id="vs-pf-canvas" @ref="_canvasRef" @onclick="HandleMockCanvasClick">
+                    <div class="vs-pf__doc-title">Contract de Închiriere</div>
+                    <div class="vs-pf__doc-body">
+                        <p>Art. 12 — Semnături</p>
+                        <p>Prezentul contract a fost încheiat astăzi, 21 aprilie 2026, în 2 exemplare originale, câte unul pentru fiecare parte. Semnăturile electronice aplicate au valoarea juridică a semnăturilor olografe, conform Regulamentului (UE) 910/2014.</p>
+                        <div class="vs-pf__doc-grid">
+                            <div>
+                                <div class="vs-pf__role">Locator</div>
+                                <div class="vs-pf__role-sub">ILIESCU Toma</div>
+                                <div class="vs-pf__sigline">semnătura</div>
+                            </div>
+                            <div>
+                                <div class="vs-pf__role">Locatar</div>
+                                <div class="vs-pf__role-sub">POPESCU Thea</div>
+                                <div class="vs-pf__sigline">semnătura</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @foreach (var f in _placed)
+                    {
+                        var color = f.Kind switch
+                        {
+                            "signature" => "#0F3E93",
+                            "initial"   => "#0A6B39",
+                            "date"      => "#D97706",
+                            _           => "#606878",
+                        };
+                        var style = $"left:{f.X.ToString(System.Globalization.CultureInfo.InvariantCulture)}%;" +
+                                    $"top:{f.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)}%;" +
+                                    $"width:{f.W.ToString(System.Globalization.CultureInfo.InvariantCulture)}%;" +
+                                    $"height:{f.H.ToString(System.Globalization.CultureInfo.InvariantCulture)}%;" +
+                                    $"background:{color}18;" +
+                                    $"border-color:{color};" +
+                                    $"color:{color};";
+                        <div class="vs-pf__field" style="@style">
+                            @if (f.Order is int ord)
+                            {
+                                <span class="vs-pf__field-badge" style="@($"background:{color};")">(@ord)</span>
+                            }
+                            @f.Kind.ToUpperInvariant() · @f.Who.Split(' ')[0]
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </Card>
+
+    <Card Padding="16">
+        <div class="vs-pf__eyebrow">Câmpuri plasate</div>
+        <div class="vs-pf__list">
+            @if (_placed.Count == 0)
+            {
+                <div class="vs-pf__empty">Niciun câmp. Dă click pe document.</div>
+            }
+            @for (var i = 0; i < _placed.Count; i++)
+            {
+                var idx = i;
+                var f = _placed[idx];
+                <div class="vs-pf__list-row">
+                    <div class="vs-pf__list-ic"><Icon Name="signature" Size="14"/></div>
+                    <div class="vs-pf__list-mid">
+                        <div class="vs-pf__list-kind">
+                            @if (f.Order is int rowOrd)
+                            {
+                                <span class="vs-pf__list-badge">(@rowOrd)</span>
+                            }
+                            @f.Kind
+                        </div>
+                        @if (_recipients.Count > 0)
+                        {
+                            <select class="vs-pf__signer vs-pf__signer--row"
+                                    value="@(f.RecipientId?.ToString())"
+                                    @onchange="@(e => ChangeFieldRecipientAsync(idx, e.Value?.ToString()))"
+                                    aria-label="Semnatar câmp">
+                                @foreach (var r in _recipients)
+                                {
+                                    <option value="@r.Id">@r.Name</option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <div class="vs-pf__list-who">@f.Who</div>
+                        }
+                    </div>
+                    <button class="vs-pf__remove" @onclick="@(() => RemovePlacedAsync(idx))" aria-label="Șterge">
+                        <Icon Name="trash" Size="14"/>
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="vs-pf__cta">
+            @if (_placed.Count == 0)
+            {
+                <div class="vs-pf__cta-hint" role="note">Plasează cel puțin un câmp de semnătură înainte de a trimite cererea.</div>
+            }
+            <Btn Full Icon="@NextIcon" OnClick="OnNext" Disabled="@(_placed.Count == 0)">@NextLabel</Btn>
+            <Btn Variant="ghost" Full OnClick="OnBack">Înapoi la semnatari</Btn>
+        </div>
+    </Card>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnNext { get; set; }
+    [Parameter] public string FileName { get; set; } = "contract-inchiriere-4B.pdf";
+    [Parameter] public Guid? DocumentId { get; set; }
+    [Parameter] public string NextLabel { get; set; } = "Trimite cererea";
+    [Parameter] public string NextIcon { get; set; } = "upload";
+
+    private record Tool(string Id, string Icon, string Label);
+    private static readonly Tool[] _tools = new[]
+    {
+        new Tool("signature", "signature", "Semnătură"),
+        new Tool("initial",   "check",     "Inițiale"),
+        new Tool("date",      "clock",     "Dată"),
+        new Tool("text",      "file",      "Text liber"),
+    };
+
+    private string _tool = "signature";
+    private bool _placing;
+    private ElementReference _canvasRef;
+    private ElementReference _hostRef;
+    private DotNetObjectReference<PlaceFieldsView>? _selfRef;
+    private bool _jsMounted;
+    private int _pageCount;
+
+    public sealed record Field(int Page, double X, double Y, double W, double H, string Kind, string Who, Guid? RecipientId, int? Order);
+
+    private readonly List<Field> _placed = new();
+    private readonly List<RecipientDto> _recipients = new();
+    private Guid? _activeRecipientId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (DocumentId is null || DocumentId == Guid.Empty) return;
+
+        var client = HttpFactory.CreateClient("MasterSTI.Api");
+        try
+        {
+            var recips = await client.GetFromJsonAsync<IReadOnlyList<RecipientDto>>(
+                $"/api/documents/{DocumentId}/recipients") ?? Array.Empty<RecipientDto>();
+
+            if (recips.Count == 0)
+            {
+                var seed = DemoData.Signatories
+                    .Select(s => new RecipientInput(null, s.Email, s.Name, s.Order, s.Level))
+                    .ToArray();
+                var resp = await client.PostAsJsonAsync(
+                    $"/api/documents/{DocumentId}/recipients",
+                    new SaveRecipientsRequest(seed));
+                if (resp.IsSuccessStatusCode)
+                {
+                    recips = await resp.Content.ReadFromJsonAsync<IReadOnlyList<RecipientDto>>()
+                             ?? Array.Empty<RecipientDto>();
+                }
+            }
+
+            _recipients.Clear();
+            _recipients.AddRange(recips.OrderBy(r => r.Order));
+            _activeRecipientId = _recipients.FirstOrDefault()?.Id;
+
+            var fields = await client.GetFromJsonAsync<IReadOnlyList<SignatureFieldDto>>(
+                $"/api/documents/{DocumentId}/fields") ?? Array.Empty<SignatureFieldDto>();
+            foreach (var f in fields)
+            {
+                var recip = _recipients.FirstOrDefault(r => r.Id == f.RecipientId);
+                var name = recip?.Name ?? "Semnatar";
+                var ord = f.RecipientOrder ?? recip?.Order;
+                _placed.Add(new Field(
+                    f.Page <= 0 ? 1 : f.Page,
+                    Math.Round(f.X * 100, 1),
+                    Math.Round(f.Y * 100, 1),
+                    Math.Round(f.Width * 100, 1),
+                    Math.Round(f.Height * 100, 1),
+                    string.IsNullOrWhiteSpace(f.Type) ? "signature" : f.Type.ToLowerInvariant(),
+                    name,
+                    f.RecipientId,
+                    ord));
+            }
+        }
+        catch { /* swallow — page still works in mock mode */ }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (DocumentId is null || DocumentId == Guid.Empty) return;
+
+        _selfRef = DotNetObjectReference.Create(this);
+        var initial = _placed.Select(f => new
+        {
+            page = f.Page,
+            x = f.X, y = f.Y, w = f.W, h = f.H,
+            kind = f.Kind, who = f.Who, order = f.Order,
+        }).ToArray();
+        try
+        {
+            var info = await JS.InvokeAsync<JsMountResult>(
+                "verasignPlaceFields.mount",
+                _hostRef, $"/pdf/documents/{DocumentId}", _selfRef, initial);
+            _pageCount = info?.PageCount ?? 0;
+            _jsMounted = true;
+            if (_placing)
+            {
+                await JS.InvokeVoidAsync("verasignPlaceFields.setPlacing", _hostRef, true);
+            }
+            StateHasChanged();
+        }
+        catch
+        {
+            // PDF.js failed to load (offline / blocked). Page still usable
+            // for the list/recipient management; placement just won't work.
+        }
+    }
+
+    private async Task ActivateTool(string id)
+    {
+        if (_placing && _tool == id) _placing = false;
+        else { _tool = id; _placing = true; }
+        if (_jsMounted)
+        {
+            try { await JS.InvokeVoidAsync("verasignPlaceFields.setPlacing", _hostRef, _placing); }
+            catch { }
+        }
+    }
+
+    private void OnActiveRecipientChanged(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var rid)) _activeRecipientId = rid;
+    }
+
+    [JSInvokable]
+    public async Task OnFieldPlaced(int page, double xPct, double yPct)
+    {
+        var active = _recipients.FirstOrDefault(r => r.Id == _activeRecipientId)
+                  ?? _recipients.FirstOrDefault();
+        var who = active?.Name ?? "Semnatar";
+        var rid = active?.Id;
+        var ord = active?.Order;
+
+        var x = Math.Round(xPct - 14, 1);
+        var y = Math.Round(yPct - 5, 1);
+        _placed.Add(new Field(page <= 0 ? 1 : page, x, y, 28, 10, _tool, who, rid, ord));
+        _placing = false;
+        if (_jsMounted)
+        {
+            try { await JS.InvokeVoidAsync("verasignPlaceFields.setPlacing", _hostRef, false); }
+            catch { }
+        }
+        await PushFieldsToJsAsync();
+        await PersistFieldsAsync();
+        StateHasChanged();
+    }
+
+    private async Task HandleMockCanvasClick(MouseEventArgs e)
+    {
+        if (!_placing) return;
+
+        var active = _recipients.FirstOrDefault(r => r.Id == _activeRecipientId)
+                  ?? _recipients.FirstOrDefault();
+        var who = active?.Name ?? "Semnatar";
+        var rid = active?.Id;
+        var ord = active?.Order;
+
+        try
+        {
+            var rect = await JS.InvokeAsync<BoundingRect>("verasignPlaceFields.getCanvasRect");
+            var x = ((e.ClientX - rect.Left) / rect.Width) * 100.0;
+            var y = ((e.ClientY - rect.Top) / rect.Height) * 100.0;
+            _placed.Add(new Field(1, Math.Round(x - 14, 1), Math.Round(y - 5, 1), 28, 10, _tool, who, rid, ord));
+        }
+        catch
+        {
+            _placed.Add(new Field(1, 50, 50, 28, 10, _tool, who, rid, ord));
+        }
+        _placing = false;
+        await PersistFieldsAsync();
+    }
+
+    private async Task RemovePlacedAsync(int idx)
+    {
+        if (idx < 0 || idx >= _placed.Count) return;
+        _placed.RemoveAt(idx);
+        await PushFieldsToJsAsync();
+        await PersistFieldsAsync();
+    }
+
+    private async Task ChangeFieldRecipientAsync(int idx, string? raw)
+    {
+        if (idx < 0 || idx >= _placed.Count) return;
+        if (!Guid.TryParse(raw, out var rid)) return;
+        var r = _recipients.FirstOrDefault(x => x.Id == rid);
+        if (r is null) return;
+        _placed[idx] = _placed[idx] with { Who = r.Name, RecipientId = rid, Order = r.Order };
+        await PushFieldsToJsAsync();
+        await PersistFieldsAsync();
+    }
+
+    private async Task PushFieldsToJsAsync()
+    {
+        if (!_jsMounted) return;
+        var arr = _placed.Select(f => new
+        {
+            page = f.Page,
+            x = f.X, y = f.Y, w = f.W, h = f.H,
+            kind = f.Kind, who = f.Who, order = f.Order,
+        }).ToArray();
+        try { await JS.InvokeVoidAsync("verasignPlaceFields.renderFields", _hostRef, arr); }
+        catch { }
+    }
+
+    private async Task PersistFieldsAsync()
+    {
+        if (DocumentId is null || DocumentId == Guid.Empty) return;
+        var client = HttpFactory.CreateClient("MasterSTI.Api");
+        var payload = new SaveFieldsRequest(_placed.Select(f => new SignatureFieldDto(
+            Id: Guid.Empty,
+            Type: f.Kind,
+            Page: f.Page <= 0 ? 1 : f.Page,
+            X: Math.Clamp(f.X / 100.0, 0, 1),
+            Y: Math.Clamp(f.Y / 100.0, 0, 1),
+            Width: Math.Clamp(f.W / 100.0, 0.001, 1),
+            Height: Math.Clamp(f.H / 100.0, 0.001, 1),
+            RecipientId: f.RecipientId)).ToList());
+        try { await client.PatchAsJsonAsync($"/api/documents/{DocumentId}/fields", payload); }
+        catch { /* swallow — retried implicitly on next interaction */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsMounted)
+        {
+            try { await JS.InvokeVoidAsync("verasignPlaceFields.dispose", _hostRef); }
+            catch { }
+        }
+        _selfRef?.Dispose();
+    }
+
+    public sealed record BoundingRect(double Left, double Top, double Width, double Height);
+    private sealed record JsMountResult(int PageCount);
+}

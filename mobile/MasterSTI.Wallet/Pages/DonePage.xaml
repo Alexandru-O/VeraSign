@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Done — port of MobileScreens.jsx MDone.
+    72-px success circle with check icon, "Semnat." display, body, signing-ID
+    mono pill, two CTAs (Înapoi la cereri, Descarcă document).
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.DonePage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid Padding="28,52,28,28" RowDefinitions="*,Auto">
+
+        <VerticalStackLayout Grid.Row="0"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="0">
+
+            <!-- Success badge -->
+            <Border x:Name="CheckCircle"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SuccessBgLight}, Dark={StaticResource SuccessBgDark}}"
+                    StrokeThickness="0"
+                    WidthRequest="72"
+                    HeightRequest="72"
+                    StrokeShape="RoundRectangle 36"
+                    HorizontalOptions="Center">
+                <controls:IconView Name="check"
+                                   Size="32"
+                                   TintColor="{AppThemeBinding Light={StaticResource SuccessLight}, Dark={StaticResource SuccessDark}}"
+                                   StrokeWidth="2"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+            </Border>
+
+            <Label Text="Semnat."
+                   FontSize="28"
+                   FontFamily="{StaticResource FontSansSemiBold}"
+                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                   HorizontalOptions="Center"
+                   Margin="0,28,0,8" />
+
+            <Label Text="Documentul a fost semnat cu succes. O copie a fost trimisă expeditorului."
+                   FontSize="14"
+                   LineHeight="1.55"
+                   TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                   HorizontalTextAlignment="Center"
+                   MaximumWidthRequest="280"
+                   HorizontalOptions="Center" />
+
+            <!-- Signing ID mono pill -->
+            <Border BackgroundColor="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}"
+                    StrokeThickness="0"
+                    Padding="16,12"
+                    StrokeShape="RoundRectangle 8"
+                    HorizontalOptions="Center"
+                    Margin="0,32,0,0">
+                <Label x:Name="IdPillLabel"
+                       Text="ID: —"
+                       FontSize="11"
+                       FontFamily="{StaticResource FontMono}"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+            </Border>
+
+            <!-- Real summary populated from /api/signed-documents/{id}/info. -->
+            <VerticalStackLayout x:Name="SummaryHost"
+                                 Spacing="0"
+                                 MaximumWidthRequest="320"
+                                 HorizontalOptions="Center"
+                                 Margin="0,24,0,0" />
+        </VerticalStackLayout>
+
+        <!-- CTAs -->
+        <VerticalStackLayout Grid.Row="1"
+                             Spacing="8">
+            <controls:BtnView Text="Înapoi la cereri"
+                              Variant="primary"
+                              Size="lg"
+                              Full="True"
+                              Clicked="OnHomeClicked" />
+            <controls:BtnView Text="Descarcă document"
+                              Variant="secondary"
+                              Size="lg"
+                              Full="True"
+                              Icon="download"
+                              Clicked="OnShareClicked" />
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>

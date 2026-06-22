@@ -1,0 +1,76 @@
+/* ArchDiagram (v2) — token-driven, three-column layout. */
+
+.vs-arch {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    padding: 40px;
+}
+
+.vs-arch__grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 24px;
+    align-items: center;
+    min-height: 320px;
+}
+
+.vs-arch__col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.vs-arch__box {
+    padding: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+}
+
+.vs-arch__box-eyebrow {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--fg-subtle);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.vs-arch__box-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--fg); }
+.vs-arch__box-sub   { font-size: 12px; color: var(--fg-muted); }
+
+.vs-arch__core {
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 24px;
+}
+
+.vs-arch__core-eyebrow {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--fg-subtle);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.vs-arch__core-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--fg); }
+
+.vs-arch__core-list { display: grid; gap: 6px; }
+
+.vs-arch__core-item {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--fg-muted);
+    padding: 6px 10px;
+    background: var(--bg-elev);
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 900px) {
+    .vs-arch { padding: 24px; }
+    .vs-arch__grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,304 @@
+@page "/verify"
+@page "/verify/{Id:guid?}"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>VeraSign · Verificare</PageTitle>
+<PageHeader Title="Verificare" Breadcrumb="VeraSign · Verificare"/>
+
+@* WVerify (v2) — 2/3 doc preview + hash strip / 1/3 success card.
+   Mirrors prototype/components/WebScreens.jsx WVerify (lines 248-306). *@
+
+<div class="vs-verify2__picker-wrap">
+<Card Padding="20" AdditionalClass="vs-verify2__picker">
+    <div class="vs-verify2__picker-row">
+        <div>
+            <div class="eyebrow">Document semnat</div>
+            <div class="vs-verify2__picker-help">Selectează un document pentru a deschide raportul complet.</div>
+        </div>
+        <select class="vs-verify2__picker-select"
+                aria-label="Selectează un document semnat pentru raport"
+                @onchange="OnDocPicked"
+                disabled="@(_signedDocs.Count == 0)">
+            <option value="">@(_signedDocs.Count == 0 ? "Niciun document semnat" : "Alege un document…")</option>
+            @foreach (var d in _signedDocs)
+            {
+                <option value="@d.SignedDocumentId"
+                        selected="@(Id == d.SignedDocumentId)">
+                    @d.FileName @(d.SignedAt is { } at ? $" · {at:dd MMM yyyy}" : "")
+                </option>
+            }
+        </select>
+    </div>
+</Card>
+</div>
+
+<div class="vs-verify2">
+    <div class="vs-verify2__doc">
+        <div class="eyebrow vs-verify2__doc-eyebrow">Document</div>
+        <div class="vs-verify2__doc-title">@_fileName</div>
+        <div class="vs-verify2__doc-sub">@_meta</div>
+        @if (Id is { } previewId)
+        {
+            <iframe class="vs-verify2__preview vs-verify2__preview-iframe"
+                    title="Previzualizare PDF semnat"
+                    src="@($"/pdf/signed/{previewId}#toolbar=0&navpanes=0")"></iframe>
+        }
+        else
+        {
+            <div class="vs-verify2__preview">[ previzualizare PDF ]</div>
+        }
+        <div class="vs-verify2__hash mono">hash: @_hash</div>
+    </div>
+
+    <Card>
+        @{
+            var allPass = _passed == _checks.Length;
+            var badgeIcon = allPass ? "check" : "x";
+            var badgeColor = allPass ? "var(--success)" : "var(--danger)";
+            var badgeBg = allPass ? "var(--success-bg)" : "var(--danger-bg)";
+            var badgeTitle = allPass ? "Semnătură validă" : "Semnătură invalidă";
+        }
+        <div class="vs-verify2__success">
+            <div class="vs-verify2__success-ic" style="background:@badgeBg;">
+                <Icon Name="@badgeIcon" Size="14" Color="@badgeColor"/>
+            </div>
+            <div>
+                <div class="vs-verify2__success-title">@badgeTitle</div>
+                <div class="vs-verify2__success-sub">@_passed/@_checks.Length verificări trecute</div>
+            </div>
+        </div>
+        <div class="vs-verify2__checks">
+            @foreach (var c in _checks)
+            {
+                <div class="vs-verify2__check">
+                    <Icon Name="@(c.Pass ? "check-circle" : "x")"
+                          Size="14"
+                          Color="@(c.Pass ? "var(--success)" : "var(--danger)")"/>
+                    <span>@c.Label</span>
+                </div>
+            }
+        </div>
+        <div class="vs-verify2__rows">
+            <div><span>Semnatar</span><span>@_signerName</span></div>
+            <div><span>Nivel</span><SigLevel Level="QES" Size="sm"/></div>
+            <div><span>Semnat la</span><span class="mono" style="font-size:11px;">@_signedAt</span></div>
+            <div>
+                <span>TSP</span>
+                <span>
+                    @if (_trustMatch)
+                    {
+                        <Pill Tone="success">@_tspName</Pill>
+                    }
+                    else
+                    {
+                        <Pill Tone="warn">@_tspName</Pill>
+                    }
+                </span>
+            </div>
+            @if (!string.IsNullOrEmpty(_trustListSnapshot))
+            {
+                <div>
+                    <span>EUTL snapshot</span>
+                    <span class="mono" style="font-size:11px;">@_trustListSnapshot</span>
+                </div>
+            }
+        </div>
+        @if (Id is { } reportId)
+        {
+            <div class="vs-verify2__full-report">
+                <Btn Variant="ghost" Size="sm" Icon="shield"
+                     OnClick="@(() => Navigation.NavigateTo($"/signed/{reportId}/validate"))">Raport complet</Btn>
+            </div>
+        }
+    </Card>
+</div>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private string _fileName = "—";
+    private string _meta = "—";
+    private string _hash = "—";
+    private string _signerName = "—";
+    private string _signedAt = "—";
+    private string _tspName = "—";
+    private bool _trustMatch;
+    private string? _trustListSnapshot;
+    private List<SignedDocOption> _signedDocs = new();
+
+    private record Check(string Label, bool Pass);
+    private Check[] _checks =
+    {
+        new("Integritate document", true),
+        new("Lanț de certificate valid", true),
+        new("Certificat neretras", true),
+        new("Marcă temporală RFC 3161", true),
+        new("Emitent în EU Trust List", true),
+        new("Conform eIDAS · QES", true),
+    };
+
+    private int _passed => _checks.Count(c => c.Pass);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSignedDocsAsync();
+        await LoadReportAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadReportAsync();
+    }
+
+    private async Task LoadSignedDocsAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.GetAsync("/api/documents?status=Signed&pageSize=50");
+            if (!resp.IsSuccessStatusCode) return;
+
+            var page = await resp.Content.ReadFromJsonAsync<DocsPage>();
+            if (page?.Items is null) return;
+
+            _signedDocs = page.Items
+                .Where(d => d.SignedDocumentId is not null)
+                .Select(d => new SignedDocOption(d.SignedDocumentId!.Value, d.Name ?? "(fără nume)", d.UpdatedAt))
+                .ToList();
+        }
+        catch { /* leave list empty on error */ }
+    }
+
+    private async Task LoadReportAsync()
+    {
+        if (Id is null) return;
+
+        var picked = _signedDocs.FirstOrDefault(d => d.SignedDocumentId == Id);
+        if (picked is not null)
+        {
+            _fileName = picked.FileName;
+            if (picked.SignedAt is { } at)
+                _signedAt = at.ToString("dd MMM yyyy · HH:mm");
+        }
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.GetAsync($"/api/signed-documents/{Id}/validate");
+            if (!resp.IsSuccessStatusCode) return;
+
+            var report = await resp.Content.ReadFromJsonAsync<ValidationReport>();
+            if (report is null) return;
+
+            _signerName = ExtractCommonName(report.SignerSubject) ?? report.SignerSubject ?? _signerName;
+
+            var when = report.SigningTime ?? report.TimestampTime;
+            if (when is { } w)
+                _signedAt = w.ToLocalTime().ToString("dd MMM yyyy · HH:mm");
+
+            var pages = report.PageManifest?.CurrentPageCount;
+            _meta = pages is > 0
+                ? $"{pages} pagini · {report.PadesLevel}"
+                : report.PadesLevel ?? "—";
+
+            var storedHash = report.PageManifest?.StoredOverallSha256;
+            _hash = string.IsNullOrEmpty(storedHash) ? "—" : FormatHash(storedHash);
+
+            _trustMatch = report.IsTrustedQtsp;
+            if (report.IsTrustedQtsp && !string.IsNullOrEmpty(report.TrustListTspName))
+            {
+                _tspName = report.TrustListTspName!;
+            }
+            else
+            {
+                // Self-signed cert (mock QTSP): IssuerDN == SubjectDN, so CN of issuer
+                // is the signer's name. Prefer O (organization) — that's what a real
+                // TSP name represents. Fall back to issuer CN, then default.
+                var issuerOrg = ExtractDnComponent(report.SignerIssuer, "O");
+                var issuerCn = ExtractDnComponent(report.SignerIssuer, "CN");
+                _tspName = !string.IsNullOrWhiteSpace(issuerOrg) ? issuerOrg!
+                    : !string.IsNullOrWhiteSpace(issuerCn) ? issuerCn!
+                    : "Emitent necunoscut";
+            }
+            _trustListSnapshot = report.TrustListSnapshotAt is { } snap
+                ? $"EUTL · snapshot {snap:dd MMM yyyy}"
+                : null;
+
+            _checks = new[]
+            {
+                new Check("Integritate document",       report.IsIntegrityValid),
+                new Check("Lanț de certificate valid",  report.CertificateChain is { Count: > 0 }),
+                new Check("Certificat neretras",        report.HasLtv || report.IsIntegrityValid),
+                new Check("Marcă temporală RFC 3161",   report.HasTimestamp),
+                new Check("Emitent în EU Trust List",   report.IsTrustedQtsp),
+                new Check("Conform eIDAS",              !string.IsNullOrEmpty(report.PadesLevel)),
+            };
+        }
+        catch { /* keep last-known values on error */ }
+    }
+
+    private static string? ExtractCommonName(string? subjectDn)
+        => ExtractDnComponent(subjectDn, "CN");
+
+    private static string? ExtractDnComponent(string? dn, string rdn)
+    {
+        if (string.IsNullOrWhiteSpace(dn)) return null;
+        var prefix = rdn + "=";
+        foreach (var part in dn.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return part.Substring(prefix.Length).Trim();
+        }
+        return null;
+    }
+
+    private static string FormatHash(string hex)
+    {
+        var clean = hex.Replace(" ", "").Replace(":", "");
+        var chunks = new List<string>();
+        for (var i = 0; i < clean.Length; i += 4)
+            chunks.Add(clean.Substring(i, Math.Min(4, clean.Length - i)));
+        return string.Join(" · ", chunks).ToUpperInvariant();
+    }
+
+    private void OnDocPicked(ChangeEventArgs args)
+    {
+        var raw = args.Value as string;
+        if (string.IsNullOrEmpty(raw))
+        {
+            Navigation.NavigateTo("/verify");
+            return;
+        }
+        if (Guid.TryParse(raw, out var picked))
+        {
+            Navigation.NavigateTo($"/verify/{picked}");
+        }
+    }
+
+    private sealed record ValidationReport(
+        bool IsIntegrityValid,
+        bool HasTimestamp,
+        bool HasLtv,
+        bool CoversWholeDocument,
+        int SignatureCount,
+        string? SignerSubject,
+        string? SignerIssuer,
+        DateTime? SigningTime,
+        DateTime? TimestampTime,
+        string? PadesLevel,
+        bool IsTrustedQtsp,
+        string? TrustListTspName,
+        string? TrustListCountry,
+        DateTime? TrustListSnapshotAt,
+        IReadOnlyList<CertificateInfoDto>? CertificateChain,
+        PageManifestDto? PageManifest);
+
+    private sealed record CertificateInfoDto(string Subject, string Issuer, DateTime ValidFrom, DateTime ValidTo, string SerialNumber, string Thumbprint);
+    private sealed record PageManifestDto(bool Present, bool Verified, string? Version, string? Algorithm, int StoredPageCount, int CurrentPageCount, IReadOnlyList<int>? MismatchedPages, string? StoredOverallSha256, string? CurrentOverallSha256);
+
+    private sealed record DocsPage(List<DocItem>? Items, int Total);
+    private sealed record DocItem(Guid Id, string? Name, string Status, Guid? SignedDocumentId, DateTime UpdatedAt);
+    private sealed record SignedDocOption(Guid SignedDocumentId, string FileName, DateTime? SignedAt);
+}

@@ -1,0 +1,138 @@
+@* ReplacePdfDialog — uploads a replacement PDF for an existing template.
+   POSTs multipart/form-data to /api/templates/{id}/replace-pdf. *@
+@inject IHttpClientFactory HttpClientFactory
+
+<div class="vs-modal__backdrop" @onclick="HandleClose">
+    <div class="vs-modal__box vs-modal__box--form" @onclick:stopPropagation="true">
+        <div class="vs-modal__head">
+            <div>
+                <div class="vs-modal__title">Înlocuiește PDF-ul</div>
+                <div class="vs-modal__sub">Încarcă un fișier PDF care va înlocui versiunea curentă.</div>
+            </div>
+            <button class="vs-modal__close" @onclick="HandleClose" aria-label="Închide" type="button">
+                <Icon Name="x" Size="16"/>
+            </button>
+        </div>
+
+        <div class="vs-modal__body vs-modal__body--form">
+            <div class="vs-tpl-replace__warn" role="alert">
+                <Icon Name="shield" Size="14"/>
+                <span>Vei înlocui fișierul PDF curent. Conținutul markdown actual va fi șters.</span>
+            </div>
+
+            <Field Label="Fișier PDF" Required="true" Error="@_fileError">
+                <div class="vs-tpl-form__file">
+                    <InputFile id="vs-tpl-replace-file"
+                               OnChange="HandleFileSelected"
+                               accept=".pdf,application/pdf"
+                               class="vs-tpl-form__file-hidden"/>
+                    <label for="vs-tpl-replace-file" class="vs-tpl-form__file-btn">
+                        <Icon Name="upload" Size="14"/>
+                        <span>@(_selectedFile is null ? "Selectează PDF" : _selectedFile.Name)</span>
+                    </label>
+                    @if (_selectedFile is not null)
+                    {
+                        <span class="vs-tpl-form__file-hint">@FormatSize(_selectedFile.Size)</span>
+                    }
+                </div>
+            </Field>
+
+            @if (!string.IsNullOrEmpty(_apiError))
+            {
+                <div class="vs-tpl-form__error" role="alert">@_apiError</div>
+            }
+        </div>
+
+        <div class="vs-modal__foot">
+            <Btn Variant="ghost" OnClick="HandleClose">Anulează</Btn>
+            <Btn OnClick="HandleSubmit" Loading="_busy" Icon="upload">Înlocuiește PDF</Btn>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid TemplateId { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnReplaced { get; set; }
+
+    private const long MaxSize = 50L * 1024 * 1024;
+
+    private IBrowserFile? _selectedFile;
+    private string? _fileError;
+    private string? _apiError;
+    private bool _busy;
+
+    private async Task HandleClose()
+    {
+        if (OnClose.HasDelegate) await OnClose.InvokeAsync();
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        _fileError = null;
+        var file = e.File;
+        var extOk = (file.Name ?? "").EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+        var typeOk = (file.ContentType ?? "").Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+        if (!extOk || !typeOk)
+        {
+            _fileError = "Doar fișiere PDF sunt acceptate.";
+            _selectedFile = null;
+            return;
+        }
+        if (file.Size > MaxSize)
+        {
+            _fileError = "Fișierul depășește 50 MB.";
+            _selectedFile = null;
+            return;
+        }
+        _selectedFile = file;
+    }
+
+    private async Task HandleSubmit()
+    {
+        _fileError = null;
+        _apiError = null;
+
+        if (_selectedFile is null)
+        {
+            _fileError = "Selectează un PDF.";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+
+            using var content = new MultipartFormDataContent();
+            await using var stream = _selectedFile.OpenReadStream(MaxSize);
+            using var streamContent = new StreamContent(stream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            content.Add(streamContent, "file", _selectedFile.Name);
+
+            var resp = await client.PostAsync($"/api/templates/{TemplateId}/replace-pdf", content);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _apiError = $"Înlocuirea a eșuat ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            if (OnReplaced.HasDelegate) await OnReplaced.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _apiError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:0.#} KB";
+        return $"{bytes / (1024.0 * 1024.0):0.#} MB";
+    }
+}

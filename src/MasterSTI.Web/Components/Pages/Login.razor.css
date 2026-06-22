@@ -1,0 +1,174 @@
+/* WLogin v2 — 50/50 split: dark inverse hero left + form right. */
+
+.vs-login2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100vh;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+}
+@media (max-width: 900px) {
+    .vs-login2 { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
+    .vs-login2__hero { display: none; }
+}
+
+/* Hero (dark inverse) ---------------------------------------------------- */
+.vs-login2__hero {
+    background: var(--bg-inverse);
+    color: var(--fg-inverse);
+    padding: 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+}
+.vs-login2__hero-top { display: flex; align-items: center; }
+
+.vs-login2__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--fg-inverse);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+.vs-login2__brand-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--fg-inverse);
+    position: relative;
+    flex-shrink: 0;
+}
+.vs-login2__brand-dot-inner {
+    position: absolute;
+    inset: 22%;
+    border-radius: 50%;
+    background: var(--bg-inverse);
+}
+
+.vs-login2__hero-headline {
+    font-size: 48px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 16px;
+}
+.vs-login2__hero-headline-mut { opacity: 0.5; }
+
+.vs-login2__hero-sub {
+    font-size: 14px;
+    opacity: 0.6;
+    max-width: 380px;
+    line-height: 1.55;
+}
+.vs-login2__hero-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 40px;
+    font-size: 11px;
+    opacity: 0.5;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.vs-login2__hero-foot {
+    font-size: 11px;
+    /* Was 0.4 — that put #6E6E6A on #0A0A0A at ~3.9:1, below WCAG AA 4.5:1
+       for small text. 0.6 lands at ~6.7:1 while keeping the airy footer feel. */
+    opacity: 0.6;
+    font-family: var(--font-mono);
+}
+
+/* Right form panel ------------------------------------------------------- */
+.vs-login2__panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px;
+    position: relative;
+}
+
+.vs-login2__panel-toggle {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+}
+
+.vs-login2__form-wrap { width: 100%; max-width: 360px; }
+
+.vs-login2__title {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+}
+.vs-login2__sub {
+    font-size: 13px;
+    color: var(--fg-muted);
+    margin-bottom: 32px;
+}
+
+.vs-login2__form { display: block; }
+
+.vs-login2__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    font-size: 12px;
+}
+
+.vs-login2__remember {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--fg-muted);
+    cursor: pointer;
+}
+
+.vs-login2__link {
+    color: var(--fg);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1px;
+}
+.vs-login2__link:hover { border-color: var(--fg); }
+
+.vs-login2__error {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--r-md);
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.vs-login2__sep {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0;
+    color: var(--fg-subtle);
+    font-size: 12px;
+}
+.vs-login2__sep span { flex: 1; height: 1px; background: var(--border); }
+
+.vs-login2__social {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vs-login2__signup {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--fg-muted);
+}
+
+@media (max-width: 600px) {
+    .vs-login2__panel { padding: 32px 24px; }
+}

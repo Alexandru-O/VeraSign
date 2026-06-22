@@ -1,0 +1,263 @@
+@page "/documents/new"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+@inject IAuthService Auth
+
+<PageTitle>VeraSign · Document nou</PageTitle>
+<PageHeader Title="Document nou" Breadcrumb="VeraSign · Documente"/>
+
+@* WUpload (v2) — Stepper at top + 2/3 dropzone + 1/3 settings card.
+   Mirrors prototype/components/WebScreens.jsx WUpload (lines 184-245). *@
+
+<div class="vs-up2">
+    <div class="vs-up2__stepper">
+        <Stepper Steps="@_steps" CurrentIndex="0"/>
+    </div>
+
+    <div class="vs-up2__grid">
+            <div>
+                <div class="vs-up2__drop @(_dragOver ? "vs-up2__drop--active" : null)"
+                     @ondragover:preventDefault="true"
+                     @ondragover="OnDragOver"
+                     @ondragleave="OnDragLeave"
+                     @ondrop:preventDefault="true"
+                     @ondrop="OnDrop">
+                    <div class="vs-up2__drop-ic">
+                        <Icon Name="upload" Size="20"/>
+                    </div>
+                    <div class="vs-up2__drop-title">Trage un PDF aici</div>
+                    <div class="vs-up2__drop-sub">sau apasă pentru a selecta · max 50MB</div>
+                    <InputFile id="vs-file-input" OnChange="OnFileSelected" accept=".pdf,application/pdf"
+                               class="vs-up2__file-hidden"
+                               style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"/>
+                    <label for="vs-file-input" class="vs-up2__file-btn">
+                        <Icon Name="folder" Size="16"/> Răsfoiește
+                    </label>
+                    @if (_fileError is not null)
+                    {
+                        <div class="vs-up2__error">@_fileError</div>
+                    }
+                    @if (_busy)
+                    {
+                        <div class="vs-up2__progress">Se încarcă: @_selectedFile?.Name</div>
+                    }
+                </div>
+
+                <div class="vs-up2__shortcuts">
+                    <div class="vs-up2__shortcuts-label">Sau pornește dintr-un șablon</div>
+                    <div class="vs-up2__chips">
+                        @if (_templates is null)
+                        {
+                            <span class="vs-up2__chip vs-up2__chip--ghost">Se încarcă...</span>
+                        }
+                        else if (_templates.Count == 0)
+                        {
+                            <span class="vs-up2__chip vs-up2__chip--ghost">Niciun șablon</span>
+                        }
+                        else
+                        {
+                            @foreach (var t in _templates)
+                            {
+                                var tpl = t;
+                                <button type="button" class="vs-up2__chip" disabled="@_busy"
+                                        @onclick="@(() => UseTemplateAsync(tpl))">
+                                    @tpl.Title
+                                </button>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <Card>
+                <div class="vs-up2__settings-title">Setări semnătură</div>
+                <Field Label="Nivel cerut">
+                    <Dropdown Width="100%"
+                              Value="@_level"
+                              ValueChanged="@(v => _level = v)"
+                              Options="@_levelOpts"/>
+                </Field>
+                <Field Label="Format">
+                    <Dropdown Width="100%"
+                              Value="@_format"
+                              ValueChanged="@(v => _format = v)"
+                              Options="@_formatOpts"/>
+                </Field>
+                <Field Label="Marcă temporală">
+                    <Dropdown Width="100%"
+                              Value="@_tsa"
+                              ValueChanged="@(v => _tsa = v)"
+                              Options="@_tsaOpts"/>
+                </Field>
+                <Btn Full="true" IconRight="arrow-right" OnClick="GoNext">Continuă</Btn>
+            </Card>
+    </div>
+</div>
+
+@code {
+    private static readonly string[] _steps = { "Încarcă", "Semnatari", "Câmpuri", "Trimite" };
+    private List<MasterSTI.Shared.DTOs.Templates.TemplateDto>? _templates;
+
+    private static readonly IReadOnlyList<Dropdown.Option> _levelOpts = new[]
+    {
+        new Dropdown.Option("SES",  "SES · Simplă",     "Acord prin click"),
+        new Dropdown.Option("AdES", "AdES · Avansată",  "Cu certificat individual"),
+        new Dropdown.Option("QES",  "QES · Calificată", "eIDAS · valoare juridică"),
+    };
+    private static readonly IReadOnlyList<Dropdown.Option> _formatOpts = new[]
+    {
+        new Dropdown.Option("pades", "PAdES · embedded în PDF"),
+        new Dropdown.Option("cades", "CAdES · detașat"),
+        new Dropdown.Option("xades", "XAdES · pentru XML"),
+    };
+    private static readonly IReadOnlyList<Dropdown.Option> _tsaOpts = new[]
+    {
+        new Dropdown.Option("rfc3161", "RFC 3161 · TSA calificată"),
+        new Dropdown.Option("none",    "Fără marcă temporală"),
+    };
+
+    private bool _dragOver;
+    private bool _busy;
+    private string _level  = "QES";
+    private string _format = "pades";
+    private string _tsa    = "rfc3161";
+
+    private IBrowserFile? _selectedFile;
+    private string? _fileError;
+    private string? _uploadedFileName;
+    private Guid? _uploadedDocumentId;
+
+    private const long MaxSize = 50L * 1024 * 1024;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var list = await client.GetFromJsonAsync<List<MasterSTI.Shared.DTOs.Templates.TemplateDto>>("/api/templates");
+            _templates = list?.Take(6).ToList() ?? new();
+        }
+        catch
+        {
+            _templates = new();
+        }
+    }
+
+    private async Task UseTemplateAsync(MasterSTI.Shared.DTOs.Templates.TemplateDto tpl)
+    {
+        _fileError = null;
+        _busy = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.PostAsync($"/api/documents/from-template/{tpl.Id}", content: null);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _fileError = $"Nu am putut crea documentul din șablon ({(int)resp.StatusCode}).";
+                return;
+            }
+            var body = await resp.Content.ReadFromJsonAsync<MasterSTI.Shared.DTOs.Documents.DocumentFromTemplateResponse>();
+            if (body is null)
+            {
+                _fileError = "Răspuns invalid la creare din șablon.";
+                return;
+            }
+            _uploadedDocumentId = body.DocumentId;
+            _uploadedFileName = body.Title;
+            Navigation.NavigateTo($"/documents/{body.DocumentId}/recipients");
+            return;
+        }
+        catch (Exception ex)
+        {
+            _fileError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void OnDragOver(DragEventArgs e) { _dragOver = true; }
+    private void OnDragLeave(DragEventArgs e) { _dragOver = false; }
+    private void OnDrop(DragEventArgs e) { _dragOver = false; }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _fileError = null;
+        _selectedFile = e.File;
+
+        var name = _selectedFile.Name ?? "";
+        var contentType = _selectedFile.ContentType ?? "";
+
+        var extOk = name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+        var typeOk = contentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+        if (!extOk || !typeOk)
+        {
+            _fileError = "Doar fișiere PDF sunt acceptate.";
+            _selectedFile = null;
+            return;
+        }
+        if (_selectedFile.Size > MaxSize)
+        {
+            _fileError = "Fișierul depășește 50 MB.";
+            _selectedFile = null;
+            return;
+        }
+
+        await UploadAsync();
+    }
+
+    private async Task UploadAsync()
+    {
+        if (_selectedFile is null) return;
+        _busy = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            using var content = new MultipartFormDataContent();
+            using var stream = _selectedFile.OpenReadStream(MaxSize);
+            using var streamContent = new StreamContent(stream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            content.Add(streamContent, "file", _selectedFile.Name);
+
+            var resp = await client.PostAsync("/api/documents/upload", content);
+            if (resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadFromJsonAsync<UploadResponse>();
+                _uploadedFileName = body?.FileName;
+                _uploadedDocumentId = body?.DocumentId;
+                if (body?.DocumentId is Guid newId)
+                {
+                    Navigation.NavigateTo($"/documents/{newId}/recipients");
+                    return;
+                }
+            }
+            else
+            {
+                _fileError = $"Încărcarea a eșuat ({(int)resp.StatusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            _fileError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void GoNext()
+    {
+        if (_uploadedDocumentId is Guid id)
+            Navigation.NavigateTo($"/documents/{id}/recipients");
+    }
+
+    private record UploadResponse(Guid DocumentId, string FileName, string Sha256Hash);
+}

@@ -1,0 +1,126 @@
+/* InfraHealthBar — 6-node infrastructure strip at the bottom of the dashboard. */
+
+.vs-infra {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.vs-infra__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vs-infra__title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.vs-infra__sub {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--fg-muted);
+}
+
+.vs-infra__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+}
+
+.vs-infra__node {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 10px 12px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    transition: border-color var(--t-fast) var(--ease);
+}
+
+.vs-infra__spark {
+    grid-column: 1 / -1;
+    display: block;
+    margin-top: 2px;
+}
+
+.vs-infra__node:hover { border-color: var(--border); }
+
+.vs-infra__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-pill);
+    background: var(--fg-subtle);
+    flex-shrink: 0;
+}
+
+.vs-infra__node--ok   .vs-infra__dot { background: var(--success); box-shadow: 0 0 0 3px var(--success-bg); }
+.vs-infra__node--warn .vs-infra__dot { background: var(--warning); box-shadow: 0 0 0 3px var(--warning-bg); }
+.vs-infra__node--err  .vs-infra__dot { background: var(--danger);  box-shadow: 0 0 0 3px var(--danger-bg); }
+
+.vs-infra__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.vs-infra__name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vs-infra__detail {
+    font-size: 10px;
+    color: var(--fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vs-infra__rtt {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    padding: 2px 6px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-xs);
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+}
+
+@media (max-width: 1280px) {
+    .vs-infra__grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 720px) {
+    .vs-infra__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+    .vs-infra__grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vs-infra__node { transition: none; }
+}

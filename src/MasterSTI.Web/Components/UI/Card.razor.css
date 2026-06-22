@@ -1,0 +1,29 @@
+/* Card — surface elevation. */
+
+.vs-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 20px;
+    transition: background var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease),
+                box-shadow var(--t-fast) var(--ease),
+                transform var(--t-fast) var(--ease);
+}
+
+.vs-card--hover[role="button"]:hover,
+.vs-card[role="button"]:hover {
+    box-shadow: var(--sh-md);
+    transform: translateY(-1px);
+    cursor: pointer;
+}
+
+.vs-card--gold {
+    border-color: var(--border-strong);
+}
+
+.vs-card[role="button"]:focus-visible {
+    outline: none;
+    box-shadow: var(--sh-focus);
+    border-color: var(--accent);
+}

@@ -1,0 +1,656 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IAuthService Auth
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpFactory
+@inject ILogger<Dashboard> Logger
+@inject IJSRuntime JS
+@inject UiConfig UiCfg
+
+@using System.Net.Http.Json
+@using MasterSTI.Shared.DTOs.Dashboard
+@using Microsoft.AspNetCore.SignalR.Client
+
+<PageTitle>VeraSign · Panou</PageTitle>
+<PageHeader Title="Panou" Breadcrumb="VeraSign"/>
+
+@* Dashboard reorientat pentru teza eIDAS 2.0:
+   - Banner wallet (EUDIW status) → GET /api/wallet/status
+   - 4 KPI cu accent pe semnaturile autorizate prin wallet → GET /api/dashboard/stats
+   - Tabel documente recente → GET /api/documents?page=1&pageSize=5 *@
+
+<div class="vs-dash2">
+    <WalletStatusBanner Info="_walletInfo" OnCtaClick="HandleWalletCta"/>
+
+    @if (_loadError is not null)
+    {
+        <div class="vs-dash2__error" role="alert">
+            <Icon Name="x" Size="16"/>
+            <span>@_loadError</span>
+            <Btn Variant="ghost" Size="sm" OnClick="ReloadAsync">Reîncearcă</Btn>
+        </div>
+    }
+
+    <div class="vs-dash2__toolbar">
+        <span class="vs-dash2__updated" role="status" aria-live="polite">
+            <span class="vs-dash2__updated-dot" aria-hidden="true"></span>
+            Actualizat @LastUpdatedLabel()
+        </span>
+        <div class="vs-dash2__seg" role="group" aria-label="Interval timp">
+            @foreach (var opt in _rangeOptions)
+            {
+                <button type="button"
+                        class="vs-dash2__seg-btn @(opt.Value == _range ? "is-active" : "")"
+                        aria-pressed="@(opt.Value == _range ? "true" : "false")"
+                        disabled="@_statsLoading"
+                        @onclick="() => SelectRangeAsync(opt.Value)">
+                    @opt.Label
+                </button>
+            }
+        </div>
+    </div>
+
+    @* KPI cards are interactive filter toggles, not definition pairs — `<ul role="list">`
+       of `<button>` cells. Earlier `<dl>` + `role="button"` on the wrapper orphaned the
+       inner `<dt>/<dd>` per axe `dlitem` rule. *@
+    <ul class="vs-dash2__kpis" role="list" aria-busy="@(_loading ? "true" : "false")" aria-label="Indicatori cheie">
+        @foreach (var kpi in _kpis)
+        {
+            var isActive = kpi.Filter == _statusFilter && kpi.Level == _levelFilter;
+            <li class="vs-dash2__kpi-cell">
+                <button type="button"
+                        class="vs-dash2__kpi vs-dash2__kpi--@kpi.Variant @(isActive ? "is-active" : "")"
+                        aria-pressed="@(isActive ? "true" : "false")"
+                        aria-label="@($"{kpi.Label}: {kpi.Value}. Filtrează documente recente.")"
+                        @onclick="() => FilterByKpiAsync(kpi)">
+                    <span class="vs-dash2__kpi-head">
+                        <span class="vs-dash2__kpi-label">@kpi.Label</span>
+                        @if (kpi.Tag is not null)
+                        {
+                            <Pill Tone="@kpi.Tag.Tone">@kpi.Tag.Text</Pill>
+                        }
+                    </span>
+                    <span class="vs-dash2__kpi-value">
+                        @if (_loading)
+                        {
+                            <span class="vs-dash2__skeleton vs-dash2__skeleton--lg" aria-hidden="true"></span>
+                            <span class="vs-sr-only">Se încarcă</span>
+                        }
+                        else
+                        {
+                            @kpi.Value
+                        }
+                    </span>
+                    @if (!string.IsNullOrEmpty(kpi.Hint))
+                    {
+                        <span class="vs-dash2__kpi-hint">
+                            @if (!string.IsNullOrEmpty(kpi.TrendIcon))
+                            {
+                                <Icon Name="@kpi.TrendIcon" Size="12"/>
+                            }
+                            <span>@kpi.Hint</span>
+                        </span>
+                    }
+                </button>
+            </li>
+        }
+    </ul>
+
+    <SigningPipeline Stats="_pipeline"/>
+
+    <div class="vs-dash2__split">
+        <section class="vs-dash2__recent" aria-labelledby="vs-dash-recent-title">
+            <div class="vs-dash2__recent-head">
+                <h2 id="vs-dash-recent-title" class="vs-dash2__recent-title">Documente recente</h2>
+                <div class="vs-dash2__recent-tools">
+                    @if (_statusFilter is not null)
+                    {
+                        <button type="button" class="vs-dash2__filter-clear" @onclick="ClearFilterAsync"
+                                aria-label="Elimină filtrul">
+                            <span>Filtru: @FilterLabel(_statusFilter)</span>
+                            <Icon Name="x" Size="12"/>
+                        </button>
+                    }
+                    <Btn Variant="ghost" Size="sm" OnClick="OpenDocumentsList">Vezi toate</Btn>
+                </div>
+            </div>
+            @if (_docs.Count == 0 && !_loading)
+            {
+                <div class="vs-dash2__empty">
+                    <Icon Name="inbox" Size="22"/>
+                    <p>Niciun document încărcat încă.</p>
+                    <Btn Variant="primary" Size="sm" OnClick='() => Navigation.NavigateTo("/documents/new")'>
+                        Document nou
+                    </Btn>
+                </div>
+            }
+            else
+            {
+                <table class="vs-dash2__table">
+                    <caption class="vs-sr-only">Documente recente, sortate descrescător după data trimiterii.</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Document</th>
+                            <th scope="col">Semnatar</th>
+                            <th scope="col">Nivel</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="vs-dash2__th-right">Trimis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in _docs)
+                        {
+                            var s = StatusToPill(d.Status);
+                            <tr>
+                                <td class="vs-dash2__td-strong">@d.Name</td>
+                                <td class="vs-dash2__td-muted">@(d.RecipientPrimary ?? "—")</td>
+                                <td><SigLevel Level="@d.Level" Size="sm"/></td>
+                                <td><Pill Tone="@s.Tone" Dot="true">@s.Label</Pill></td>
+                                <td class="vs-dash2__td-right vs-dash2__td-mono">@FormatRelative(d.UpdatedAt)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </section>
+
+        <aside class="vs-dash2__side" aria-label="Activitate și atenție">
+            <UpcomingCard Items="_upcoming"/>
+            <WeekChart Values="_weekValues" Labels="_weekLabels" PreviousTotal="_weekPrev"/>
+        </aside>
+    </div>
+
+    <InfraHealthBar Diagnostics="_diagnostics"/>
+</div>
+
+@code {
+    private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _pollCts;
+    private HubConnection? _hub;
+    private bool _loading = true;
+    private bool _statsLoading;
+    private string? _loadError;
+    private DateTimeOffset? _lastUpdated;
+    private const int PollSeconds = 15;
+    private const int BadgeRefreshSeconds = 5;
+
+    private string _range = "30d";
+    private record RangeOption(string Value, string Label);
+    private static readonly RangeOption[] _rangeOptions = new[]
+    {
+        new RangeOption("7d",  "7 zile"),
+        new RangeOption("30d", "30 zile"),
+        new RangeOption("90d", "90 zile"),
+    };
+
+    private WalletStatusBanner.WalletPidInfo? _walletInfo;
+
+    private record KpiTag(string Tone, string Text);
+    private record Kpi(string Label, string Value, string? Hint, string? TrendIcon, string Variant, KpiTag? Tag, string? Filter, string? Level = null);
+
+    // KPI list is rebuilt after each stats fetch. Filter = ?status= param against /api/documents;
+    // Level (optional) is appended as &level=… so the filtered list grain matches the KPI grain
+    // (e.g., "QES via Wallet" counts signed Documents with at least one QES recipient — the
+    // filter must constrain to level=QES, not just status=signed).
+    private Kpi[] _kpis = new[]
+    {
+        new Kpi("Trimise",         "—", null, null, "neutral", null,                              null),
+        new Kpi("QES via Wallet",  "—", null, null, "success", new KpiTag("success", "EUDIW"),    "signed",   "QES"),
+        new Kpi("În așteptare",    "—", null, null, "warning", new KpiTag("warning", "SLA"),      "awaiting"),
+        new Kpi("Respinse",        "—", null, null, "neutral", null,                              "declined"),
+    };
+
+    private string? _statusFilter;
+    private string? _levelFilter;
+
+    private IReadOnlyList<DocumentListItemDto> _docs = Array.Empty<DocumentListItemDto>();
+    private PipelineStatsDto? _pipeline;
+    private DiagnosticsDto? _diagnostics;
+
+    private IReadOnlyList<UpcomingCard.UpcomingItem> _upcoming = Array.Empty<UpcomingCard.UpcomingItem>();
+
+    private int[]    _weekValues = new[] { 0, 0, 0, 0, 0, 0, 0 };
+    private string[] _weekLabels = new[] { "L", "M", "M", "J", "V", "S", "D" };
+    private int?     _weekPrev;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadAsync();
+        _lastUpdated = DateTimeOffset.UtcNow;
+
+        _pollCts = new CancellationTokenSource();
+        _ = PollLoopAsync(_pollCts.Token);
+        _ = BadgeTickAsync(_pollCts.Token);
+        _ = ConnectHubAsync(_pollCts.Token);
+    }
+
+    private async Task ConnectHubAsync(CancellationToken ct)
+    {
+        try
+        {
+            var hubUrl = new Uri(new Uri(UiCfg.ApiBaseUrl), "/hubs/dashboard");
+            _hub = new HubConnectionBuilder()
+                .WithUrl(hubUrl, opts =>
+                {
+                    opts.AccessTokenProvider = () => Task.FromResult<string?>(Auth.Token);
+#if DEBUG
+                    // Mock QTSP-style self-signed cert on https://localhost:7001
+                    // means dev WS handshake fails strict TLS validation. Accept the
+                    // localhost cert here — same posture as the diagnostics probe client.
+                    // Release builds must use a real CA-signed cert; this block is excluded.
+                    opts.HttpMessageHandlerFactory = inner =>
+                    {
+                        if (inner is HttpClientHandler h)
+                            h.ServerCertificateCustomValidationCallback =
+                                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                        return inner;
+                    };
+                    opts.WebSocketConfiguration = ws =>
+                    {
+                        ws.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+                    };
+#endif
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hub.On("dashboard-changed", async () =>
+            {
+                if (_pollCts is null || _pollCts.IsCancellationRequested) return;
+                // Coalesce with the visibility gate — same rule as the polling loop.
+                bool visible = true;
+                try { visible = await JS.InvokeAsync<bool>("veraDash.isVisible"); }
+                catch { }
+                if (!visible) return;
+                await RefreshSilentlyAsync(_pollCts.Token);
+            });
+
+            await _hub.StartAsync(ct);
+            Logger.LogInformation("Dashboard hub connected: {ConnectionId}", _hub.ConnectionId);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            // Non-fatal — the 15s poll keeps the UI fresh if the hub is unreachable.
+            Logger.LogWarning(ex, "Dashboard SignalR hub connection failed; falling back to polling only.");
+        }
+    }
+
+    private async Task PollLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(PollSeconds));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                bool visible = true;
+                try { visible = await JS.InvokeAsync<bool>("veraDash.isVisible"); }
+                catch { /* prerender or JS unavailable — assume visible */ }
+                if (!visible) continue;
+                await RefreshSilentlyAsync(ct);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task BadgeTickAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(BadgeRefreshSeconds));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task RefreshSilentlyAsync(CancellationToken ct)
+    {
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var docsUrl = BuildDocsUrl();
+
+            var statsTask    = client.GetFromJsonAsync<DashboardStatsDto>($"/api/dashboard/stats?range={_range}", ct);
+            var docsTask     = client.GetFromJsonAsync<PagedResultDto<DocumentListItemDto>>(docsUrl, ct);
+            var walletTask   = client.GetFromJsonAsync<WalletStatusDto>("/api/wallet/status", ct);
+            var pipelineTask = client.GetFromJsonAsync<PipelineStatsDto>("/api/dashboard/pipeline-stats", ct);
+            var upcomingTask = client.GetFromJsonAsync<List<UpcomingItemDto>>("/api/dashboard/upcoming", ct);
+            var diagTask     = client.GetFromJsonAsync<DiagnosticsDto>("/api/dashboard/diagnostics", ct);
+
+            await Task.WhenAll(statsTask, docsTask, walletTask, pipelineTask, upcomingTask, diagTask);
+
+            ApplyStats(statsTask.Result);
+            ApplyDocuments(docsTask.Result);
+            ApplyWallet(walletTask.Result);
+            _pipeline = pipelineTask.Result;
+            ApplyUpcoming(upcomingTask.Result);
+            _diagnostics = diagTask.Result;
+
+            _lastUpdated = DateTimeOffset.UtcNow;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Dashboard silent refresh failed");
+        }
+    }
+
+    private string LastUpdatedLabel()
+    {
+        if (_lastUpdated is null) return "—";
+        var delta = DateTimeOffset.UtcNow - _lastUpdated.Value;
+        if (delta.TotalSeconds < 5)  return "acum";
+        if (delta.TotalSeconds < 60) return $"acum {(int)delta.TotalSeconds}s";
+        if (delta.TotalMinutes < 60) return $"acum {(int)delta.TotalMinutes}min";
+        return _lastUpdated.Value.ToLocalTime().ToString("HH:mm");
+    }
+
+    private async Task ReloadAsync()
+    {
+        _loadError = null;
+        _loading = true;
+        StateHasChanged();
+        await LoadAsync();
+        _lastUpdated = DateTimeOffset.UtcNow;
+    }
+
+    private async Task FilterByKpiAsync(Kpi kpi)
+    {
+        // Toggle off when clicking the active filter again.
+        var sameFilter = _statusFilter == kpi.Filter && _levelFilter == kpi.Level;
+        if (sameFilter)
+        {
+            _statusFilter = null;
+            _levelFilter = null;
+        }
+        else
+        {
+            _statusFilter = kpi.Filter;
+            _levelFilter = kpi.Level;
+        }
+        StateHasChanged();
+
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var docs = await client.GetFromJsonAsync<PagedResultDto<DocumentListItemDto>>(
+                BuildDocsUrl(), _cts?.Token ?? CancellationToken.None);
+            ApplyDocuments(docs);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Documents refetch with filter status={Status} level={Level} failed",
+                _statusFilter, _levelFilter);
+        }
+
+        try { await JS.InvokeVoidAsync("veraDash.scrollTo", "vs-dash-recent-title"); }
+        catch { /* prerender / no-DOM */ }
+
+        StateHasChanged();
+    }
+
+    private Task ClearFilterAsync()
+    {
+        var current = _kpis.FirstOrDefault(k => k.Filter == _statusFilter && k.Level == _levelFilter);
+        return current is null ? Task.CompletedTask : FilterByKpiAsync(current);
+    }
+
+    private void OpenDocumentsList()
+    {
+        if (_statusFilter is null && _levelFilter is null) { Navigation.NavigateTo("/documents"); return; }
+        var parts = new List<string>();
+        if (_statusFilter is not null) parts.Add($"status={_statusFilter}");
+        if (_levelFilter  is not null) parts.Add($"level={_levelFilter}");
+        Navigation.NavigateTo($"/documents?{string.Join('&', parts)}");
+    }
+
+    private string BuildDocsUrl()
+    {
+        var url = "/api/documents?page=1&pageSize=5";
+        if (_statusFilter is not null) url += $"&status={_statusFilter}";
+        if (_levelFilter  is not null) url += $"&level={_levelFilter}";
+        return url;
+    }
+
+    private static string FilterLabel(string? f) => f switch
+    {
+        "signed"   => "QES via Wallet",
+        "awaiting" => "În așteptare",
+        "declined" => "Respinse",
+        _          => ""
+    };
+
+    private async Task SelectRangeAsync(string range)
+    {
+        if (range == _range || _statsLoading) return;
+        _range = range;
+        _statsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var stats = await client.GetFromJsonAsync<DashboardStatsDto>(
+                $"/api/dashboard/stats?range={_range}",
+                _cts?.Token ?? CancellationToken.None);
+            ApplyStats(stats);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Stats refetch for range {Range} failed", _range);
+        }
+        finally
+        {
+            _statsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+
+            // Parallel fan-out — all six endpoints are independent.
+            var statsTask    = client.GetFromJsonAsync<DashboardStatsDto>($"/api/dashboard/stats?range={_range}", ct);
+            var docsTask     = client.GetFromJsonAsync<PagedResultDto<DocumentListItemDto>>("/api/documents?page=1&pageSize=5", ct);
+            var walletTask   = client.GetFromJsonAsync<WalletStatusDto>("/api/wallet/status", ct);
+            var pipelineTask = client.GetFromJsonAsync<PipelineStatsDto>("/api/dashboard/pipeline-stats", ct);
+            var upcomingTask = client.GetFromJsonAsync<List<UpcomingItemDto>>("/api/dashboard/upcoming", ct);
+            var diagTask     = client.GetFromJsonAsync<DiagnosticsDto>("/api/dashboard/diagnostics", ct);
+
+            await Task.WhenAll(statsTask, docsTask, walletTask, pipelineTask, upcomingTask, diagTask);
+
+            ApplyStats(statsTask.Result);
+            ApplyDocuments(docsTask.Result);
+            ApplyWallet(walletTask.Result);
+            _pipeline = pipelineTask.Result;
+            ApplyUpcoming(upcomingTask.Result);
+            _diagnostics = diagTask.Result;
+
+            _loadError = null;
+        }
+        catch (OperationCanceledException)
+        {
+            // Component was disposed mid-flight; no UI update needed.
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Dashboard data fetch failed");
+            _loadError = "Nu am putut încărca datele panoului. Verifică conexiunea cu API-ul.";
+        }
+        finally
+        {
+            _loading = false;
+            if (_cts is { IsCancellationRequested: false })
+                StateHasChanged();
+        }
+    }
+
+    private void ApplyStats(DashboardStatsDto? s)
+    {
+        if (s is null) return;
+
+        var sentHint = s.SentDeltaCount switch
+        {
+            > 0 => $"+{s.SentDeltaCount} față de perioada anterioară",
+            < 0 => $"{s.SentDeltaCount} față de perioada anterioară",
+            _   => "fără schimbare față de perioada anterioară"
+        };
+        var sentIcon = s.SentDeltaCount switch
+        {
+            > 0 => "arrow-up-right",
+            < 0 => "arrow-right",
+            _   => null
+        };
+
+        _kpis = new[]
+        {
+            new Kpi(
+                Label: "Trimise",
+                Value: s.Sent.ToString(),
+                Hint: sentHint,
+                TrendIcon: sentIcon,
+                Variant: "neutral",
+                Tag: null,
+                Filter: null),
+
+            new Kpi(
+                Label: "QES via Wallet",
+                Value: s.WalletQesSignatures.ToString(),
+                Hint: $"{s.WalletKeyBindingRate.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}% key-binding verificat",
+                TrendIcon: "shield-check",
+                Variant: "success",
+                Tag: new KpiTag("success", "EUDIW"),
+                Filter: "signed"),
+
+            new Kpi(
+                Label: "În așteptare",
+                Value: s.Pending.ToString(),
+                Hint: s.UrgentToday > 0 ? $"{s.UrgentToday} cu termen astăzi" : "fără urgențe",
+                TrendIcon: "clock",
+                Variant: "warning",
+                Tag: s.UrgentToday > 0 ? new KpiTag("warning", "SLA") : null,
+                Filter: "awaiting"),
+
+            new Kpi(
+                Label: "Respinse",
+                Value: s.Declined.ToString(),
+                Hint: $"Rată respingere {s.RejectionRate.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}%",
+                TrendIcon: null,
+                Variant: "neutral",
+                Tag: null,
+                Filter: "declined"),
+        };
+
+        if (s.WeekValues.Count == 7) _weekValues = s.WeekValues.ToArray();
+        if (s.WeekLabels.Count == 7) _weekLabels = s.WeekLabels.ToArray();
+        _weekPrev = s.PreviousPeriodTotal;
+    }
+
+    private void ApplyDocuments(PagedResultDto<DocumentListItemDto>? r)
+    {
+        _docs = r?.Items ?? Array.Empty<DocumentListItemDto>();
+    }
+
+    private void ApplyUpcoming(IReadOnlyList<UpcomingItemDto>? items)
+    {
+        if (items is null || items.Count == 0)
+        {
+            _upcoming = Array.Empty<UpcomingCard.UpcomingItem>();
+            return;
+        }
+
+        _upcoming = items
+            .Select(i => new UpcomingCard.UpcomingItem(
+                Title: i.Title,
+                Subtitle: i.Subtitle,
+                Icon: i.Icon,
+                Tone: i.Tone,
+                Badge: i.Badge))
+            .ToList();
+    }
+
+    private void ApplyWallet(WalletStatusDto? w)
+    {
+        if (w is null || !w.Enrolled
+            || w.HolderName is null
+            || w.IssuedAt is null
+            || w.ExpiresAt is null
+            || w.CnfThumbprint is null)
+        {
+            _walletInfo = null;
+            return;
+        }
+
+        _walletInfo = new WalletStatusBanner.WalletPidInfo(
+            HolderName: w.HolderName,
+            IssuedAt: w.IssuedAt.Value,
+            ExpiresAt: w.ExpiresAt.Value,
+            CnfThumbprintFull: w.CnfThumbprint);
+    }
+
+    private void HandleWalletCta() => Navigation.NavigateTo("/settings");
+
+    private record StatusPill(string Tone, string Label);
+    private static StatusPill StatusToPill(string s) => s.ToLowerInvariant() switch
+    {
+        "uploaded"  => new("info",    "Încărcat"),
+        "preparing" => new("info",    "Pregătire"),
+        "signing"   => new("info",    "Semnare"),
+        "awaiting"  => new("warning", "În așteptare"),
+        "pending"   => new("warning", "În așteptare"),
+        "signed"    => new("success", "Semnat"),
+        "embedded"  => new("success", "Semnat"),
+        "declined"  => new("danger",  "Respins"),
+        "failed"    => new("danger",  "Eșec"),
+        _           => new("neutral", s)
+    };
+
+    private static string FormatRelative(DateTime utc)
+    {
+        var delta = DateTime.UtcNow - utc;
+        if (delta.TotalMinutes < 1) return "acum";
+        if (delta.TotalMinutes < 60) return $"acum {(int)delta.TotalMinutes}min";
+        if (delta.TotalHours < 24)   return $"acum {(int)delta.TotalHours}h";
+        if (delta.TotalDays < 2)     return "ieri";
+        if (delta.TotalDays < 7)     return $"acum {(int)delta.TotalDays} zile";
+        return utc.ToLocalTime().ToString("dd MMM");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _pollCts?.Cancel();
+        _pollCts?.Dispose();
+        _pollCts = null;
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
+
+        if (_hub is not null)
+        {
+            try { await _hub.DisposeAsync(); }
+            catch (Exception ex) { Logger.LogDebug(ex, "Hub dispose"); }
+            _hub = null;
+        }
+    }
+}

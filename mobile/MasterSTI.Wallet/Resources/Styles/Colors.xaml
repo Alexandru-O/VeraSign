@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    MasterSTI / VeraSign color tokens v2 (port of design/prototype/tokens.css).
+    Each semantic alias has *Light and *Dark variants. Consume via
+    AppThemeBinding so the resource flips automatically when
+    Application.Current.UserAppTheme changes.
+
+    Example:
+      <Setter Property="BackgroundColor"
+              Value="{AppThemeBinding Light={StaticResource BgLight},
+                                      Dark={StaticResource BgDark}}" />
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ============== Light theme ============== -->
+    <Color x:Key="BgLight">#FAFAF9</Color>
+    <Color x:Key="BgElevLight">#FFFFFF</Color>
+    <Color x:Key="BgSunkenLight">#F4F4F2</Color>
+    <Color x:Key="BgInverseLight">#0A0A0A</Color>
+
+    <Color x:Key="BorderLight">#E5E4E0</Color>
+    <Color x:Key="BorderStrongLight">#D4D2CC</Color>
+    <Color x:Key="BorderSubtleLight">#EFEEEA</Color>
+
+    <Color x:Key="FgLight">#0A0A0A</Color>
+    <Color x:Key="FgMutedLight">#525252</Color>
+    <Color x:Key="FgSubtleLight">#8A8A85</Color>
+    <Color x:Key="FgInverseLight">#FAFAF9</Color>
+
+    <Color x:Key="AccentLight">#1A1A1A</Color>
+    <Color x:Key="AccentFgLight">#FFFFFF</Color>
+    <Color x:Key="AccentHoverLight">#2A2A2A</Color>
+
+    <Color x:Key="SuccessLight">#1F7A52</Color>
+    <Color x:Key="SuccessBgLight">#E8F2EC</Color>
+    <Color x:Key="WarningLight">#8B5A0A</Color>
+    <Color x:Key="WarningBgLight">#F7F0DD</Color>
+    <Color x:Key="DangerLight">#8B2A2A</Color>
+    <Color x:Key="DangerBgLight">#F4E5E5</Color>
+    <Color x:Key="InfoLight">#1F4A7A</Color>
+    <Color x:Key="InfoBgLight">#E5EBF2</Color>
+
+    <!-- ============== Dark theme ============== -->
+    <Color x:Key="BgDark">#0A0A0A</Color>
+    <Color x:Key="BgElevDark">#141413</Color>
+    <Color x:Key="BgSunkenDark">#060605</Color>
+    <Color x:Key="BgInverseDark">#FAFAF9</Color>
+
+    <Color x:Key="BorderDark">#262624</Color>
+    <Color x:Key="BorderStrongDark">#36352F</Color>
+    <Color x:Key="BorderSubtleDark">#1A1A18</Color>
+
+    <Color x:Key="FgDark">#FAFAF9</Color>
+    <Color x:Key="FgMutedDark">#A8A89E</Color>
+    <Color x:Key="FgSubtleDark">#6E6E68</Color>
+    <Color x:Key="FgInverseDark">#0A0A0A</Color>
+
+    <Color x:Key="AccentDark">#FAFAF9</Color>
+    <Color x:Key="AccentFgDark">#0A0A0A</Color>
+    <Color x:Key="AccentHoverDark">#E5E5E0</Color>
+
+    <Color x:Key="SuccessDark">#6BCFA0</Color>
+    <Color x:Key="SuccessBgDark">#142A22</Color>
+    <Color x:Key="WarningDark">#E5B260</Color>
+    <Color x:Key="WarningBgDark">#2B2114</Color>
+    <Color x:Key="DangerDark">#E58484</Color>
+    <Color x:Key="DangerBgDark">#2B1818</Color>
+    <Color x:Key="InfoDark">#84B5E5</Color>
+    <Color x:Key="InfoBgDark">#182338</Color>
+
+    <!-- ============== Legacy v1 keys ==============
+         Retargeted to monochrome ramp; kept so existing controls compile. -->
+    <Color x:Key="RoBlue50">#F4F4F2</Color>
+    <Color x:Key="RoBlue100">#E5E4E0</Color>
+    <Color x:Key="RoBlue200">#D4D2CC</Color>
+    <Color x:Key="RoBlue300">#8A8A85</Color>
+    <Color x:Key="RoBlue400">#525252</Color>
+    <Color x:Key="RoBlue500">#1A1A1A</Color>
+    <Color x:Key="RoBlue600">#0A0A0A</Color>
+    <Color x:Key="RoBlue700">#0A0A0A</Color>
+    <Color x:Key="RoBlue800">#060605</Color>
+    <Color x:Key="RoBlue900">#060605</Color>
+
+    <Color x:Key="Gold50">#F7F0DD</Color>
+    <Color x:Key="Gold100">#F7F0DD</Color>
+    <Color x:Key="Gold300">#E5B260</Color>
+    <Color x:Key="Gold400">#1A1A1A</Color>
+    <Color x:Key="Gold500">#0A0A0A</Color>
+    <Color x:Key="Gold600">#0A0A0A</Color>
+
+    <Color x:Key="N0">#FFFFFF</Color>
+    <Color x:Key="N50">#FAFAF9</Color>
+    <Color x:Key="N100">#F4F4F2</Color>
+    <Color x:Key="N200">#EFEEEA</Color>
+    <Color x:Key="N300">#E5E4E0</Color>
+    <Color x:Key="N400">#8A8A85</Color>
+    <Color x:Key="N500">#525252</Color>
+    <Color x:Key="N600">#525252</Color>
+    <Color x:Key="N700">#0A0A0A</Color>
+    <Color x:Key="N800">#0A0A0A</Color>
+    <Color x:Key="N900">#0A0A0A</Color>
+
+    <Color x:Key="Success50">#E8F2EC</Color>
+    <Color x:Key="Success500">#1F7A52</Color>
+    <Color x:Key="Success700">#1F7A52</Color>
+    <Color x:Key="Warn50">#F7F0DD</Color>
+    <Color x:Key="Warn500">#8B5A0A</Color>
+    <Color x:Key="Warn700">#8B5A0A</Color>
+    <Color x:Key="Danger50">#F4E5E5</Color>
+    <Color x:Key="Danger500">#8B2A2A</Color>
+    <Color x:Key="Danger700">#8B2A2A</Color>
+    <Color x:Key="Info50">#E5EBF2</Color>
+    <Color x:Key="Info500">#1F4A7A</Color>
+
+    <!-- Default (light-resolved) flat aliases — kept for legacy bindings
+         like {StaticResource Bg}. New code should use AppThemeBinding
+         against *Light/*Dark above. -->
+    <Color x:Key="Bg">#FAFAF9</Color>
+    <Color x:Key="BgElev">#FFFFFF</Color>
+    <Color x:Key="BgInverse">#0A0A0A</Color>
+    <Color x:Key="Fg">#0A0A0A</Color>
+    <Color x:Key="Fg1">#0A0A0A</Color>
+    <Color x:Key="Fg2">#525252</Color>
+    <Color x:Key="Fg3">#525252</Color>
+    <Color x:Key="Fg4">#8A8A85</Color>
+    <Color x:Key="Border">#E5E4E0</Color>
+    <Color x:Key="BorderStrong">#D4D2CC</Color>
+    <Color x:Key="Accent">#1A1A1A</Color>
+    <Color x:Key="AccentHover">#2A2A2A</Color>
+
+    <!-- Default MAUI template keys (kept for Styles.xaml compatibility) -->
+    <Color x:Key="Primary">#1A1A1A</Color>
+    <Color x:Key="Secondary">#525252</Color>
+    <Color x:Key="Tertiary">#8A8A85</Color>
+    <Color x:Key="White">#FFFFFF</Color>
+    <Color x:Key="Black">#0A0A0A</Color>
+    <Color x:Key="Gray100">#F4F4F2</Color>
+    <Color x:Key="Gray950">#0A0A0A</Color>
+
+</ResourceDictionary>

@@ -1,0 +1,65 @@
+@page "/documents/{Id:guid}/fields"
+@rendermode InteractiveServer
+@using MasterSTI.Shared.DTOs.Documents
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpFactory
+
+<PageTitle>VeraSign · Plasează câmpuri</PageTitle>
+<PageHeader Title="Cerere nouă" Breadcrumb="Documente · Cerere nouă · Câmpuri"/>
+
+<div class="vs-pf-wrapper">
+    <Card Padding="20" AdditionalClass="vs-pf-wrapper__stepper">
+        <Stepper Steps="@(new[] { "Încărcare", "Semnatari", "Câmpuri", "Trimite" })" CurrentIndex="2"/>
+    </Card>
+    <PlaceFieldsView OnBack="GoBack" OnNext="SendAsync" DocumentId="Id"/>
+    @if (_error is not null)
+    {
+        <div class="vs-pf-wrapper__error" role="alert">@_error</div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private string? _error;
+    private bool _sending;
+
+    private void GoBack() => Navigation.NavigateTo($"/documents/{Id}/recipients");
+
+    private async Task SendAsync()
+    {
+        if (_sending) return;
+        _sending = true;
+        _error = null;
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.PostAsync($"/api/documents/{Id}/send", content: null);
+            if (resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadFromJsonAsync<SendDocumentResponse>();
+                if (body?.AutoStart == true && body.SigningRequestId is Guid sigReqId)
+                {
+                    Navigation.NavigateTo($"/signing/{sigReqId}/wallet-auth");
+                    return;
+                }
+                Navigation.NavigateTo("/dashboard");
+                return;
+            }
+            _error = (int)resp.StatusCode switch
+            {
+                404 => "Documentul nu a fost găsit.",
+                409 => "Documentul nu poate fi trimis (status invalid sau fără câmpuri/semnatari).",
+                _   => $"Trimiterea a eșuat ({(int)resp.StatusCode})."
+            };
+        }
+        catch (Exception ex)
+        {
+            _error = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+}

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" width="240" height="64">
+  
+  <defs>
+    <linearGradient id="shieldG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2A57A8"></stop>
+      <stop offset="100%" stop-color="#1E4289"></stop>
+    </linearGradient>
+  </defs>
+  
+  <g transform="translate(4,8)">
+    <path d="M24 0 L46 6 V26 C46 38 36 46 24 48 C12 46 2 38 2 26 V6 Z" fill="url(#shieldG)"></path>
+    
+    <path d="M14 24 L21 31 L34 17" stroke="#F8CF3F" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+    
+    <g transform="translate(36,4) scale(0.55)">
+      <path d="M6 0 L7.4 4.3 L12 4.3 L8.3 7 L9.7 11.3 L6 8.6 L2.3 11.3 L3.7 7 L0 4.3 L4.6 4.3 Z" fill="#F8CF3F"></path>
+    </g>
+  </g>
+  
+  <text x="62" y="41" font-family="Instrument Serif, Georgia, serif" font-size="30" fill="#0F224D" letter-spacing="-0.5">
+    Vera<tspan font-style="italic" fill="#1E4289">Sign</tspan>
+  </text>
+</svg>

@@ -1,0 +1,26 @@
+/* QR — square SVG container; embedded SVG fills it. */
+
+.vs-qr {
+    display: inline-block;
+    background: #fff;
+    border-radius: var(--r-sm);
+    overflow: hidden;
+}
+
+.vs-qr svg {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+.vs-qr__placeholder {
+    width: 100%;
+    height: 100%;
+    background:
+        linear-gradient(45deg, var(--n-100) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--n-100) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--n-100) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--n-100) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}

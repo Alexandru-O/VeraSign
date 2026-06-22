@@ -1,0 +1,25 @@
+@* StatusTile — KPI-style tile with icon, label, value, caption + variant color.
+   Used by ValidationReportPage status grid. *@
+
+<div class="vs-status-tile vs-status-tile--@Variant">
+    <div class="vs-status-tile__icon">
+        <Icon Name="@Icon" Size="20"/>
+    </div>
+    <div class="vs-status-tile__body">
+        <div class="vs-status-tile__label">@Label</div>
+        <div class="vs-status-tile__value">@Value</div>
+        @if (!string.IsNullOrWhiteSpace(Caption))
+        {
+            <div class="vs-status-tile__caption">@Caption</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "check";
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public string? Caption { get; set; }
+    /// <summary>"success" | "warn" | "danger" | "info" | "neutral"</summary>
+    [Parameter] public string Variant { get; set; } = "neutral";
+}

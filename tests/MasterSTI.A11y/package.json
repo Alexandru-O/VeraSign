@@ -1,0 +1,15 @@
+{
+  "name": "mastersti-a11y",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Automated WCAG 2.2 AA audit for the VeraSign Web app via axe-core + Playwright.",
+  "scripts": {
+    "test": "playwright test",
+    "install:browsers": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.5"
+  }
+}

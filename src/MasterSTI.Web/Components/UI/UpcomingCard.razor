@@ -1,0 +1,56 @@
+@* UpcomingCard — sidebar widget listing items that need user attention today
+   (overdue, due-today, wallet revalidations). Demo data is passed in; later
+   wired to GET /api/dashboard/upcoming. *@
+
+<section class="vs-upc" aria-labelledby="vs-upc-title">
+    <header class="vs-upc__head">
+        <div>
+            <h2 id="vs-upc-title" class="vs-upc__title">Necesită atenția ta</h2>
+            <p class="vs-upc__sub">@Items.Count @(Items.Count == 1 ? "element" : "elemente") · azi</p>
+        </div>
+        @if (Items.Count > 0)
+        {
+            <Pill Tone="warning" Dot="true">@Items.Count</Pill>
+        }
+    </header>
+
+    @if (Items.Count == 0)
+    {
+        <div class="vs-upc__empty">
+            <div class="vs-upc__empty-ic" aria-hidden="true"><Icon Name="check-circle" Size="22"/></div>
+            <div class="vs-upc__empty-text">Nimic urgent astăzi.</div>
+        </div>
+    }
+    else
+    {
+        <ul class="vs-upc__list">
+            @foreach (var item in Items)
+            {
+                <li class="vs-upc__item vs-upc__item--@item.Tone">
+                    <div class="vs-upc__item-ic" aria-hidden="true">
+                        <Icon Name="@item.Icon" Size="14"/>
+                    </div>
+                    <div class="vs-upc__item-body">
+                        <div class="vs-upc__item-title">@item.Title</div>
+                        <div class="vs-upc__item-meta">@item.Subtitle</div>
+                    </div>
+                    @if (item.Badge is not null)
+                    {
+                        <Pill Tone="@item.Tone" Dot="true">@item.Badge</Pill>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    [Parameter] public IReadOnlyList<UpcomingItem> Items { get; set; } = Array.Empty<UpcomingItem>();
+
+    public sealed record UpcomingItem(
+        string Title,
+        string Subtitle,
+        string Icon,
+        string Tone,
+        string? Badge);
+}

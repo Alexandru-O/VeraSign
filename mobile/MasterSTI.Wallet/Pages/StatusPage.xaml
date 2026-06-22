@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Status — port of design/project/components/MobileScreens.jsx MSigning (v2).
+    Top bar with logo + TEHNIC/SIMPLU pill, document context card, central
+    progress ring with live % and elapsed timer, paced step list, footer
+    security strip. Step list is driven by real SigningRequest.Status polling
+    (every 1 s via WalletApiClient.GetSigningStatusAsync); "Detaliat" mode
+    swaps in the technical detail block fed by /technical-detail.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.StatusPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+        <!-- Top bar: logo + TEHNIC/SIMPLU pill -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*,Auto"
+              VerticalOptions="Center"
+              Padding="20,16,20,0">
+            <controls:LogoView Grid.Column="0" Size="16" />
+            <Border Grid.Column="2"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                    StrokeThickness="1"
+                    Padding="10,5"
+                    StrokeShape="RoundRectangle 999">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnToggleDetailTapped" />
+                </Border.GestureRecognizers>
+                <Label x:Name="ToggleDetailLabel"
+                       Text="TEHNIC"
+                       FontSize="11"
+                       FontFamily="{StaticResource FontMono}"
+                       CharacterSpacing="0.4"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                       VerticalTextAlignment="Center" />
+            </Border>
+        </Grid>
+
+        <!-- Document context card -->
+        <Border Grid.Row="1"
+                x:Name="DocCard"
+                Margin="20,8,20,0"
+                Padding="12"
+                BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 10">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <!-- Doc icon w/ inline progress fill bar -->
+                <Grid Grid.Column="0"
+                      WidthRequest="32"
+                      HeightRequest="38"
+                      BackgroundColor="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}">
+                    <controls:IconView Name="doc"
+                                       Size="14"
+                                       TintColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                    <!-- Track (faded accent) -->
+                    <BoxView Color="{AppThemeBinding Light={StaticResource AccentLight}, Dark={StaticResource AccentDark}}"
+                             Opacity="0.25"
+                             HeightRequest="2"
+                             WidthRequest="24"
+                             HorizontalOptions="Center"
+                             VerticalOptions="End"
+                             Margin="0,0,0,4" />
+                    <!-- Fill (animated by DocProgressFill.WidthRequest on tick) -->
+                    <BoxView x:Name="DocProgressFill"
+                             Color="{AppThemeBinding Light={StaticResource AccentLight}, Dark={StaticResource AccentDark}}"
+                             HeightRequest="2"
+                             WidthRequest="0"
+                             HorizontalOptions="Start"
+                             VerticalOptions="End"
+                             Margin="4,0,0,4" />
+                </Grid>
+
+                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Label x:Name="DocNameLabel"
+                           Text="Document"
+                           FontSize="12"
+                           FontFamily="{StaticResource FontSansSemiBold}"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                           LineBreakMode="TailTruncation" />
+                    <Label x:Name="DocMetaLabel"
+                           Text="—"
+                           FontSize="10"
+                           FontFamily="{StaticResource FontMono}"
+                           TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                           LineBreakMode="TailTruncation" />
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+
+        <!-- Center: ring + title -->
+        <VerticalStackLayout Grid.Row="2"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Padding="28,20"
+                             Spacing="0">
+
+            <!-- Progress ring (drawn by RingDrawable) with center labels overlaid -->
+            <Grid WidthRequest="132"
+                  HeightRequest="132"
+                  HorizontalOptions="Center"
+                  Margin="0,0,0,24">
+                <GraphicsView x:Name="RingView"
+                              WidthRequest="132"
+                              HeightRequest="132" />
+                <VerticalStackLayout HorizontalOptions="Center"
+                                     VerticalOptions="Center"
+                                     Spacing="2">
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="0">
+                        <Label x:Name="PercentLabel"
+                               Text="0"
+                               FontSize="24"
+                               FontFamily="{StaticResource FontSansSemiBold}"
+                               TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                               VerticalTextAlignment="Center" />
+                        <Label Text="%"
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                               VerticalTextAlignment="End"
+                               Margin="0,0,0,3" />
+                    </HorizontalStackLayout>
+                    <Label x:Name="ElapsedLabel"
+                           Text="0.0S"
+                           FontSize="9"
+                           FontFamily="{StaticResource FontMono}"
+                           CharacterSpacing="0.8"
+                           TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Label x:Name="TitleLabel"
+                   Text="Se semnează documentul"
+                   FontSize="18"
+                   FontFamily="{StaticResource FontSansSemiBold}"
+                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,0,0,4" />
+
+            <Label x:Name="SubtitleLabel"
+                   Text="Nu închide aplicația. Procesul durează câteva secunde."
+                   FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                   HorizontalTextAlignment="Center"
+                   MaximumWidthRequest="260" />
+
+            <!-- Detaliat mode: technical detail block. -->
+            <VerticalStackLayout x:Name="DetailHost"
+                                 Spacing="6"
+                                 Margin="0,16,0,0"
+                                 IsVisible="False" />
+
+            <!-- Failed state: error message + retry. -->
+            <VerticalStackLayout x:Name="ErrorHost"
+                                 Spacing="12"
+                                 Margin="0,16,0,0"
+                                 IsVisible="False">
+                <Label x:Name="ErrorMessageLabel"
+                       FontSize="13"
+                       FontFamily="{StaticResource FontSansSemiBold}"
+                       TextColor="{AppThemeBinding Light={StaticResource DangerLight}, Dark={StaticResource DangerDark}}"
+                       HorizontalTextAlignment="Center" />
+                <Button x:Name="RetryButton"
+                        Text="Reîncearcă"
+                        Clicked="OnRetryClicked"
+                        HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+
+        <!-- Step list -->
+        <VerticalStackLayout Grid.Row="3"
+                             x:Name="StepsHost"
+                             Padding="20,0,20,16"
+                             Spacing="2" />
+
+        <!-- Footer trust strip -->
+        <Border Grid.Row="4"
+                Padding="20,12"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSubtleLight}, Dark={StaticResource BorderSubtleDark}}"
+                StrokeThickness="0"
+                BackgroundColor="Transparent">
+            <Border.Behaviors>
+                <!-- Top-only border via custom solution would need a BoxView line; use a Grid with hairline. -->
+            </Border.Behaviors>
+            <Grid>
+                <BoxView Color="{AppThemeBinding Light={StaticResource BorderSubtleLight}, Dark={StaticResource BorderSubtleDark}}"
+                         HeightRequest="1"
+                         HorizontalOptions="Fill"
+                         VerticalOptions="Start" />
+                <HorizontalStackLayout HorizontalOptions="Center"
+                                       VerticalOptions="Center"
+                                       Spacing="8"
+                                       Margin="0,8,0,0">
+                    <controls:IconView Name="lock"
+                                       Size="10"
+                                       TintColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                                       VerticalOptions="Center" />
+                    <Label Text="SECURIZAT PRIN CERTSIGN · EIDAS QES"
+                           FontSize="10"
+                           FontFamily="{StaticResource FontMono}"
+                           CharacterSpacing="0.6"
+                           TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                           VerticalTextAlignment="Center" />
+                </HorizontalStackLayout>
+            </Grid>
+        </Border>
+
+        <!-- Hidden placeholder kept for code-behind reference (legacy) -->
+        <controls:IconView x:Name="Spinner"
+                           Grid.Row="2"
+                           Name="dot"
+                           Size="0"
+                           IsVisible="False" />
+    </Grid>
+
+</ContentPage>

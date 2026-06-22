@@ -1,0 +1,345 @@
+@page "/documents/{Id:guid}"
+@rendermode InteractiveServer
+@inject IAuthService Auth
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpFactory
+@inject ILogger<DocumentDetailPage> Logger
+
+@using System.Net.Http.Json
+@using MasterSTI.Shared.DTOs.Documents
+@using Microsoft.AspNetCore.Components.Web
+
+<PageTitle>VeraSign · @(_detail?.FileName ?? "Document")</PageTitle>
+<PageHeader Title="Detalii document" Breadcrumb="Documente · Detalii"/>
+
+<div class="vs-doc-detail">
+    @if (_loading)
+    {
+        <div class="vs-doc-detail__skeleton">
+            <div class="vs-doc-detail__skeleton-head"></div>
+            <div class="vs-doc-detail__skeleton-row"></div>
+            <div class="vs-doc-detail__skeleton-row"></div>
+            <div class="vs-doc-detail__skeleton-row"></div>
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <Card Padding="20">
+            <div class="vs-doc-detail__error" role="alert">
+                <Icon Name="x" Size="16"/>
+                <span>@_error</span>
+                <Btn Variant="ghost" Size="sm" OnClick="LoadAsync">Reîncearcă</Btn>
+            </div>
+        </Card>
+    }
+    else if (_detail is not null)
+    {
+        var s = StatusToPill(_detail.Status);
+
+        <Card Padding="24" AdditionalClass="vs-doc-detail__head">
+            <h1 class="vs-doc-detail__title">@_detail.FileName</h1>
+            <div class="vs-doc-detail__meta">
+                <Pill Tone="@s.Tone" Dot="true">@s.Label</Pill>
+                <span class="vs-doc-detail__meta-sep">·</span>
+                <SigLevel Level="@_detail.Level" Size="sm"/>
+                <span class="vs-doc-detail__meta-sep">·</span>
+                <span class="vs-doc-detail__meta-item">Trimis @FormatRelative(_detail.UploadedAt)</span>
+                @if (!string.IsNullOrWhiteSpace(_detail.SenderName))
+                {
+                    <span class="vs-doc-detail__meta-sep">·</span>
+                    <span class="vs-doc-detail__meta-item">de @_detail.SenderName</span>
+                }
+            </div>
+            <div class="vs-doc-detail__head-actions">
+                <Btn Variant="ghost" Size="sm" Icon="eye" OnClick='() => Navigation.NavigateTo($"/viewer/{Id}")'>Vezi PDF</Btn>
+                @if (_detail.SignedDocumentId is { } sid)
+                {
+                    <SignedDocDownload SignedDocumentId="@sid"
+                                       FileName="@($"signed_{_detail.FileName}")"
+                                       Label="Descarcă semnat"
+                                       CssClass="vs-doc-detail__download"/>
+                    <Btn Variant="ghost" Size="sm" Icon="shield"
+                         OnClick="@(() => Navigation.NavigateTo($"/signed/{sid}/validate"))">Raport semnătură</Btn>
+                }
+            </div>
+        </Card>
+
+        <Card Padding="0" AdditionalClass="vs-doc-detail__panel">
+            <header class="vs-doc-detail__panel-head">
+                <h2 class="vs-doc-detail__panel-title">Semnatari</h2>
+                <span class="vs-doc-detail__panel-count">@_detail.Recipients.Count semnatar@(_detail.Recipients.Count == 1 ? "" : "i")</span>
+            </header>
+
+            @if (_detail.Recipients.Count == 0)
+            {
+                <div class="vs-doc-detail__empty">
+                    <Icon Name="inbox" Size="22"/>
+                    <p>Acest document nu are semnatari.</p>
+                </div>
+            }
+            else
+            {
+                <table class="vs-doc-detail__table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="vs-doc-detail__th-order">#</th>
+                            <th scope="col">Semnatar</th>
+                            <th scope="col">Nivel</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="vs-doc-detail__th-right">Data</th>
+                            <th scope="col" class="vs-doc-detail__th-right">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in _detail.Recipients)
+                        {
+                            var rs = RecipientStatusToPill(r.Status);
+                            var isActive = string.Equals(r.Status, "Notified", StringComparison.OrdinalIgnoreCase);
+                            <tr class="@(isActive ? "vs-doc-detail__row vs-doc-detail__row--active" : "vs-doc-detail__row")">
+                                <td class="vs-doc-detail__td-order">@r.Order</td>
+                                <td>
+                                    <div class="vs-doc-detail__person">
+                                        <div class="vs-doc-detail__avatar">@Initials(r.Name)</div>
+                                        <div>
+                                            <div class="vs-doc-detail__name">
+                                                @r.Name
+                                                @if (isActive)
+                                                {
+                                                    <span class="vs-doc-detail__chip">La rând</span>
+                                                }
+                                            </div>
+                                            <div class="vs-doc-detail__email">@r.Email</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><SigLevel Level="@r.Level" Size="sm"/></td>
+                                <td><Pill Tone="@rs.Tone" Dot="true">@rs.Label</Pill></td>
+                                <td class="vs-doc-detail__td-right vs-doc-detail__td-mono">@FormatRecipientDate(r)</td>
+                                <td class="vs-doc-detail__td-right">
+                                    @if (isActive)
+                                    {
+                                        <Btn Variant="ghost" Size="sm" Icon="bell"
+                                             Disabled="@_remindBusy"
+                                             OnClick="RemindAsync">Reminder</Btn>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </Card>
+
+        @if (_detail.Stages.Count > 0)
+        {
+            <Card Padding="0" AdditionalClass="vs-doc-detail__panel">
+                <header class="vs-doc-detail__panel-head">
+                    <h2 class="vs-doc-detail__panel-title">Etape de semnare</h2>
+                    <span class="vs-doc-detail__panel-count">@_detail.Stages.Count etap@(_detail.Stages.Count == 1 ? "ă" : "e")</span>
+                </header>
+                <ol class="vs-doc-detail__stages">
+                    @foreach (var stage in _detail.Stages)
+                    {
+                        <li class="vs-doc-detail__stage">
+                            <div class="vs-doc-detail__stage-badge">@stage.Stage</div>
+                            <div class="vs-doc-detail__stage-body">
+                                <div class="vs-doc-detail__stage-line">
+                                    <span class="vs-doc-detail__stage-title">Etapa @stage.Stage · semnat de @stage.SignerName</span>
+                                    <span class="vs-doc-detail__stage-meta">@FormatTimestamp(stage.SignedAt) · @FormatPades(stage.PadesLevel)</span>
+                                </div>
+                                <div class="vs-doc-detail__stage-actions">
+                                    <SignedDocDownload SignedDocumentId="@stage.Id"
+                                                       FileName="@($"signed_stage{stage.Stage}_{_detail.FileName}")"
+                                                       Label="Descarcă"
+                                                       CssClass="vs-doc-detail__download"/>
+                                    @if (stage.IsFinal)
+                                    {
+                                        <span class="vs-doc-detail__archive">
+                                            <Icon Name="shield" Size="12"/>
+                                            <span>@FormatPades(stage.PadesLevel)</span>
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ol>
+            </Card>
+        }
+    }
+
+    @if (_toast is not null)
+    {
+        <div class="vs-doc-detail__toast vs-doc-detail__toast--@_toastTone" role="status">
+            <Icon Name="check" Size="14"/>
+            <span>@_toast</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private string? _error;
+    private DocumentDetailDto? _detail;
+    private bool _remindBusy;
+    private string? _toast;
+    private string _toastTone = "success";
+    private CancellationTokenSource? _toastCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _loading = true;
+            _error = null;
+            StateHasChanged();
+
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            _detail = await client.GetFromJsonAsync<DocumentDetailDto>($"/api/documents/{Id}/detail");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _error = "Documentul nu există sau nu ai acces.";
+            _detail = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Document detail fetch failed for {DocumentId}", Id);
+            _error = "Nu am putut încărca detaliile documentului.";
+            _detail = null;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemindAsync()
+    {
+        if (_remindBusy) return;
+        _remindBusy = true;
+        StateHasChanged();
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.PostAsync($"/api/documents/{Id}/remind", content: null);
+            if (resp.IsSuccessStatusCode)
+            {
+                ShowToast("Reminder trimis.", "success");
+                await LoadAsync();
+            }
+            else
+            {
+                ShowToast($"Reminder eșuat ({(int)resp.StatusCode}).", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Remind failed for {DocumentId}", Id);
+            ShowToast("Reminder eșuat — verifică conexiunea.", "danger");
+        }
+        finally
+        {
+            _remindBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowToast(string message, string tone)
+    {
+        _toast = message;
+        _toastTone = tone;
+        _toastCts?.Cancel();
+        _toastCts?.Dispose();
+        _toastCts = new CancellationTokenSource();
+        var token = _toastCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(3000, token);
+                _toast = null;
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException) { }
+        });
+    }
+
+    private record StatusPill(string Tone, string Label);
+
+    private static StatusPill StatusToPill(string s) => s.ToLowerInvariant() switch
+    {
+        "uploaded"  => new("info",    "Încărcat"),
+        "preparing" => new("info",    "Pregătire"),
+        "signing"   => new("info",    "Semnare"),
+        "awaiting"  => new("warning", "În așteptare"),
+        "signed"    => new("success", "Semnat"),
+        "declined"  => new("danger",  "Respins"),
+        "cancelled" => new("neutral", "Anulat"),
+        "failed"    => new("danger",  "Eșec"),
+        _           => new("neutral", s)
+    };
+
+    private static StatusPill RecipientStatusToPill(string s) => s.ToLowerInvariant() switch
+    {
+        "pending"  => new("neutral", "În așteptare"),
+        "notified" => new("warning", "Notificat"),
+        "signed"   => new("success", "Semnat"),
+        "declined" => new("danger",  "Respins"),
+        _          => new("neutral", s)
+    };
+
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant();
+    }
+
+    private static string FormatRelative(DateTime utc)
+    {
+        var delta = DateTime.UtcNow - utc;
+        if (delta.TotalMinutes < 1) return "acum";
+        if (delta.TotalMinutes < 60) return $"acum {(int)delta.TotalMinutes}min";
+        if (delta.TotalHours < 24)   return $"acum {(int)delta.TotalHours}h";
+        if (delta.TotalDays < 2)     return "ieri";
+        if (delta.TotalDays < 7)     return $"acum {(int)delta.TotalDays} zile";
+        return utc.ToLocalTime().ToString("dd MMM");
+    }
+
+    private static string FormatRecipientDate(RecipientDto r)
+    {
+        if (r.SignedAt is { } signed) return FormatRelative(signed);
+        if (r.NotifiedAt is { } notified) return FormatRelative(notified);
+        return "—";
+    }
+
+    private static string FormatTimestamp(DateTime utc) =>
+        utc.ToLocalTime().ToString("dd MMM yyyy · HH:mm");
+
+    private static string FormatPades(string level)
+    {
+        if (string.IsNullOrWhiteSpace(level)) return "PAdES";
+        // Normalise "PAdES-B-LT" / "PAdES_B_LT" → "PAdES B-LT".
+        var trimmed = level.Replace("_", "-").Trim();
+        if (trimmed.StartsWith("PAdES-", StringComparison.OrdinalIgnoreCase))
+            return "PAdES " + trimmed.Substring("PAdES-".Length);
+        if (trimmed.StartsWith("PAdES", StringComparison.OrdinalIgnoreCase))
+            return trimmed;
+        return "PAdES " + trimmed;
+    }
+}

@@ -1,0 +1,397 @@
+@page "/signed/{signedDocumentId:guid}/validate"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>VeraSign · Raport validare</PageTitle>
+
+<div class="vs-val-report">
+    <div class="vs-val-report__header">
+        <Btn Variant="ghost" Size="sm" Icon="arrow-left" OnClick="GoBack">Înapoi</Btn>
+        <h1 class="vs-val-report__title">Raport validare semnătură</h1>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="vs-val-report__loading">
+            <span class="vs-btn__spinner" aria-hidden="true"></span>
+            <span>Se validează semnătura&hellip;</span>
+        </div>
+    }
+    else if (_report is null)
+    {
+        <Card>
+            <div class="vs-val-report__error">
+                <Icon Name="x" Size="20"/>
+                <div>
+                    <strong>Document negăsit sau validare eșuată.</strong>
+                    <p>ID raport: <code>@SignedDocumentId</code></p>
+                </div>
+            </div>
+        </Card>
+    }
+    else
+    {
+        <div class="vs-val-report__status-grid">
+            <StatusTile Icon="@(_report.IsIntegrityValid ? "check-circle" : "x")"
+                        Label="Integritate"
+                        Value="@(_report.IsIntegrityValid ? "Validă" : "INVALIDĂ")"
+                        Caption="@(_report.IsIntegrityValid ? "Hash document neschimbat" : "Document modificat după semnare")"
+                        Variant="@(_report.IsIntegrityValid ? "success" : "danger")"/>
+
+            <StatusTile Icon="clock"
+                        Label="Timestamp"
+                        Value="@(_report.HasTimestamp ? "RFC 3161" : "Lipsește")"
+                        Caption="@(_report.TimestampTime?.ToString("dd MMM yyyy HH:mm") ?? "PAdES-B-B simplu")"
+                        Variant="@(_report.HasTimestamp ? "success" : "warn")"/>
+
+            <StatusTile Icon="shield-check"
+                        Label="LTV"
+                        Value="@(_report.HasLtv ? "Prezent" : "Lipsește")"
+                        Caption="@(_report.HasLtv ? "DSS · OCSP/CRL embedded" : "Validare offline limitată")"
+                        Variant="@(_report.HasLtv ? "success" : "warn")"/>
+
+            <StatusTile Icon="star"
+                        Label="Nivel PAdES"
+                        Value="@_report.PadesLevel"
+                        Caption="@LevelCaption(_report.PadesLevel)"
+                        Variant="info"/>
+
+            <StatusTile Icon="@(_report.IsTrustedQtsp ? "shield-check" : "shield")"
+                        Label="EU Trust List"
+                        Value="@(_report.IsTrustedQtsp ? "QTSP recunoscut" : "Necunoscut")"
+                        Caption="@TrustListCaption()"
+                        Variant="@(_report.IsTrustedQtsp ? "success" : "warn")"/>
+
+            <StatusTile Icon="@PageManifestIcon()"
+                        Label="Integritate pe pagini"
+                        Value="@PageManifestValue()"
+                        Caption="@PageManifestCaption()"
+                        Variant="@PageManifestVariant()"/>
+        </div>
+
+        @if (_report.RenderVerification is { } rv && !string.Equals(rv.Status, "NotPresent", StringComparison.OrdinalIgnoreCase))
+        {
+            <RenderVerificationRow Status="@rv.Status.ToLowerInvariant()"
+                                   Profile="@rv.Profile"
+                                   Dpi="@rv.Dpi"
+                                   PageCount="@rv.PageCount"
+                                   StoredRoot="@rv.StoredRootHex"
+                                   RecomputedRoot="@rv.RecomputedRootHex"/>
+        }
+
+        @if (_report.PageManifest is { Present: true } pm)
+        {
+            <Card>
+                <div class="vs-val-report__section-title">
+                    <Icon Name="layers" Size="16"/>
+                    <span>Manifest pagini (@pm.Version)</span>
+                </div>
+                <div class="vs-val-report__page-grid">
+                    @for (int i = 1; i <= Math.Max(pm.StoredPageCount, pm.CurrentPageCount); i++)
+                    {
+                        var bad = pm.MismatchedPages.Contains(i);
+                        <span class="vs-val-report__page-cell @(bad ? "is-bad" : "is-ok")"
+                              title="@(bad ? $"Pagina {i}: divergență" : $"Pagina {i}: OK")">
+                            @i
+                        </span>
+                    }
+                </div>
+                <dl class="vs-val-report__dl" style="margin-top:12px;">
+                    <dt>Hash global stocat</dt>
+                    <dd class="vs-mono">@(pm.StoredOverallSha256 ?? "—")</dd>
+                    <dt>Hash global re-calculat</dt>
+                    <dd class="vs-mono">@(pm.CurrentOverallSha256 ?? "—")</dd>
+                </dl>
+            </Card>
+        }
+
+        <div class="vs-val-report__grid">
+            <Card>
+                <div class="vs-val-report__section-title">
+                    <Icon Name="user" Size="16"/>
+                    <span>Semnatar</span>
+                </div>
+                <dl class="vs-val-report__dl">
+                    <dt>Subject</dt>
+                    <dd class="vs-mono">@_report.SignerSubject</dd>
+
+                    <dt>Issuer</dt>
+                    <dd class="vs-mono">@(_report.SignerIssuer ?? "—")</dd>
+
+                    <dt>Cert valid</dt>
+                    <dd>
+                        @if (_report.CertValidFrom is not null && _report.CertValidTo is not null)
+                        {
+                            <span>@_report.CertValidFrom.Value.ToString("dd MMM yyyy") <span class="vs-val-report__arrow">→</span> @_report.CertValidTo.Value.ToString("dd MMM yyyy")</span>
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
+                    </dd>
+                </dl>
+            </Card>
+
+            <Card>
+                <div class="vs-val-report__section-title">
+                    <Icon Name="clock" Size="16"/>
+                    <span>Cronologie</span>
+                </div>
+                <dl class="vs-val-report__dl">
+                    <dt>Semnare</dt>
+                    <dd>@(_report.SigningTime?.ToString("dd MMM yyyy HH:mm:ss") ?? "—")</dd>
+
+                    <dt>Timestamp TSA</dt>
+                    <dd>@(_report.TimestampTime?.ToString("dd MMM yyyy HH:mm:ss") ?? "—")</dd>
+
+                    <dt>Acoperă tot documentul</dt>
+                    <dd>
+                        @if (_report.CoversWholeDocument)
+                        {
+                            <Pill Tone="success">DA</Pill>
+                        }
+                        else
+                        {
+                            <Pill Tone="danger">NU</Pill>
+                        }
+                    </dd>
+
+                    <dt>Semnături în doc</dt>
+                    <dd>@_report.SignatureCount</dd>
+                </dl>
+            </Card>
+        </div>
+
+        @if (_report.CertificateChain.Count > 0)
+        {
+            <Card>
+                <div class="vs-val-report__section-title">
+                    <Icon Name="key" Size="16"/>
+                    <span>Lanț de certificate (@_report.CertificateChain.Count)</span>
+                </div>
+
+                <div class="vs-val-report__chain">
+                    @for (int i = 0; i < _report.CertificateChain.Count; i++)
+                    {
+                        var c = _report.CertificateChain[i];
+                        var idx = i;
+                        var open = _openCert == idx;
+                        <div class="vs-val-report__cert @(open ? "is-open" : "")">
+                            <button class="vs-val-report__cert-head" @onclick="() => Toggle(idx)" type="button">
+                                <span class="vs-val-report__cert-idx">#@(idx + 1)</span>
+                                <span class="vs-val-report__cert-subject">@ShortDn(c.Subject)</span>
+                                <Pill Tone="@(IsExpired(c) ? "danger" : "neutral")">
+                                    @(IsExpired(c) ? "EXPIRAT" : c.ValidTo.ToString("MMM yyyy"))
+                                </Pill>
+                                <Icon Name="@(open ? "chevron-down" : "chevron-right")" Size="14"/>
+                            </button>
+                            @if (open)
+                            {
+                                <dl class="vs-val-report__cert-body vs-val-report__dl">
+                                    <dt>Subject</dt>
+                                    <dd class="vs-mono">@c.Subject</dd>
+                                    <dt>Issuer</dt>
+                                    <dd class="vs-mono">@c.Issuer</dd>
+                                    <dt>Valid</dt>
+                                    <dd>@c.ValidFrom.ToString("dd MMM yyyy") <span class="vs-val-report__arrow">→</span> @c.ValidTo.ToString("dd MMM yyyy")</dd>
+                                    <dt>Serial</dt>
+                                    <dd class="vs-mono">@c.SerialNumber</dd>
+                                    <dt>SHA-256</dt>
+                                    <dd class="vs-mono vs-val-report__thumbprint">@FormatThumbprint(c.Thumbprint)</dd>
+                                </dl>
+                            }
+                        </div>
+                    }
+                </div>
+            </Card>
+        }
+
+        <div class="vs-val-report__raw">
+            <button class="vs-val-report__raw-toggle" @onclick="() => _showRaw = !_showRaw" type="button">
+                <Icon Name="@(_showRaw ? "chevron-down" : "chevron-right")" Size="14"/>
+                <span>Raport brut (debug)</span>
+            </button>
+            @if (_showRaw)
+            {
+                <pre class="vs-val-report__raw-body">@_report.RawReport</pre>
+            }
+        </div>
+
+        <div class="vs-val-report__actions">
+            <Btn Variant="secondary" Size="md" Icon="download" OnClick="DownloadSignedPdf">Descarcă PDF semnat</Btn>
+            <Btn Variant="ghost" Size="md" OnClick="GoBack">Înapoi</Btn>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid SignedDocumentId { get; set; }
+
+    private ValidationReport? _report;
+    private bool _loading = true;
+    private bool _showRaw;
+    private int _openCert = -1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            _report = await client.GetFromJsonAsync<ValidationReport>($"/api/signed-documents/{SignedDocumentId}/validate");
+        }
+        catch { }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Toggle(int idx) => _openCert = _openCert == idx ? -1 : idx;
+
+    private void GoBack() => Navigation.NavigateTo($"/signed/{SignedDocumentId}");
+
+    private void DownloadSignedPdf()
+        => Navigation.NavigateTo($"/api/signed-documents/{SignedDocumentId}/download", forceLoad: true);
+
+    private static bool IsExpired(CertificateInfo c) => c.ValidTo < DateTime.UtcNow;
+
+    private static string LevelCaption(string level) => level switch
+    {
+        "PAdES-B-LTA" => "Long-Term Archive · cu timestamp arhivă",
+        "PAdES-B-LT" => "Long-Term Validation",
+        "PAdES-B-T"  => "Cu timestamp TSA",
+        "PAdES-B-B"  => "Basic — fără TSA/LTV",
+        _ => "—"
+    };
+
+    private string TrustListCaption()
+    {
+        if (_report is null) return "—";
+        if (_report.IsTrustedQtsp)
+        {
+            var snap = _report.TrustListSnapshotAt?.ToString("dd MMM yyyy") ?? "—";
+            return $"{_report.TrustListTspName} ({_report.TrustListCountry}) · snapshot {snap}";
+        }
+        return "Emitent nu este în EUTL · validare manuală recomandată";
+    }
+
+    private string PageManifestIcon()
+        => _report?.PageManifest switch
+        {
+            { Present: true, Verified: true } => "check-circle",
+            { Present: true, Verified: false } => "x",
+            _ => "minus-circle"
+        };
+
+    private string PageManifestValue()
+        => _report?.PageManifest switch
+        {
+            { Present: true, Verified: true } pm => $"{pm.StoredPageCount} pagini OK",
+            { Present: true, Verified: false } pm => $"{pm.MismatchedPages.Count} divergențe",
+            _ => "Lipsește"
+        };
+
+    private string PageManifestCaption()
+        => _report?.PageManifest switch
+        {
+            { Present: true, Verified: true } pm => $"Manifest {pm.Version} · semnătură per-pagină validă",
+            { Present: true, Verified: false } pm => $"Pagini divergente: {string.Join(',', pm.MismatchedPages)}",
+            _ => "Document semnat înainte de Day-3 · fără manifest stocat"
+        };
+
+    private string PageManifestVariant()
+        => _report?.PageManifest switch
+        {
+            { Present: true, Verified: true } => "success",
+            { Present: true, Verified: false } => "danger",
+            _ => "warn"
+        };
+
+    private static string ShortDn(string dn)
+    {
+        if (string.IsNullOrWhiteSpace(dn)) return "—";
+        // Extract CN= if present
+        foreach (var part in dn.Split(','))
+        {
+            var trim = part.Trim();
+            if (trim.StartsWith("CN=", StringComparison.OrdinalIgnoreCase))
+                return trim[3..];
+        }
+        return dn.Length > 60 ? dn[..60] + "…" : dn;
+    }
+
+    private static string FormatThumbprint(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "—";
+        // Insert : every 2 chars
+        var sb = new System.Text.StringBuilder(hex.Length + hex.Length / 2);
+        for (int i = 0; i < hex.Length; i += 2)
+        {
+            if (i > 0) sb.Append(':');
+            sb.Append(hex, i, Math.Min(2, hex.Length - i));
+        }
+        return sb.ToString();
+    }
+
+    private record ValidationReport(
+        Guid SignedDocumentId,
+        bool IsIntegrityValid,
+        bool HasTimestamp,
+        bool HasLtv,
+        bool CoversWholeDocument,
+        int SignatureCount,
+        string SignerSubject,
+        string? SignerIssuer,
+        DateTime? CertValidFrom,
+        DateTime? CertValidTo,
+        string PadesLevel,
+        DateTime? SigningTime,
+        DateTime? TimestampTime,
+        List<CertificateInfo> CertificateChain,
+        bool IsTrustedQtsp,
+        string? TrustListTspName,
+        string? TrustListCountry,
+        string? TrustListSource,
+        DateTime? TrustListSnapshotAt,
+        PageManifestReport? PageManifest,
+        RenderVerificationReport? RenderVerification,
+        string RawReport);
+
+    // Status arrives as a PascalCase string ("Verified" / "Disputed" /
+    // "NotPresent") via the per-type [JsonConverter(JsonStringEnumConverter)]
+    // on RenderVerificationStatus. We compare case-insensitively at the call
+    // site and forward a lowercased copy to RenderVerificationRow.
+    private record RenderVerificationReport(
+        string Status,
+        string? Profile,
+        string? Algo,
+        int Dpi,
+        int PageCount,
+        string? Locale,
+        string? StoredRootHex,
+        string? RecomputedRootHex,
+        string? VerifierPdfiumBinarySha256,
+        List<int> DisputedPages,
+        string? Reason);
+
+    private record PageManifestReport(
+        bool Present,
+        bool Verified,
+        string? Version,
+        string? Algorithm,
+        int StoredPageCount,
+        int CurrentPageCount,
+        List<int> MismatchedPages,
+        string? StoredOverallSha256,
+        string? CurrentOverallSha256);
+
+    private record CertificateInfo(
+        string Subject,
+        string Issuer,
+        DateTime ValidFrom,
+        DateTime ValidTo,
+        string SerialNumber,
+        string Thumbprint);
+}

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    SigLevelView v2 — eIDAS signature-level chip.
+    sm  -> renders as a PillView with appropriate tone (+ dot).
+    md  -> renders as "QES · Calificată" with mono label + Romanian description.
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Controls.SigLevelView">
+
+    <Grid>
+        <!-- Small variant: pill -->
+        <controls:PillView x:Name="SmallPill"
+                           Tone="neutral"
+                           Dot="True"
+                           Text="QES"
+                           IsVisible="False" />
+
+        <!-- Medium variant: mono code + Romanian sub -->
+        <HorizontalStackLayout x:Name="MediumRow"
+                               Spacing="6"
+                               VerticalOptions="Center"
+                               IsVisible="True">
+            <Label x:Name="LevelLabel"
+                   Text="QES"
+                   FontSize="12"
+                   FontFamily="{StaticResource FontMono}"
+                   VerticalTextAlignment="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+            <Label x:Name="DescLabel"
+                   Text="· Calificată"
+                   FontSize="12"
+                   FontFamily="{StaticResource FontSans}"
+                   VerticalTextAlignment="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}" />
+        </HorizontalStackLayout>
+    </Grid>
+
+</ContentView>

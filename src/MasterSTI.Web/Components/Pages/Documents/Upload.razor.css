@@ -1,0 +1,119 @@
+/* WUpload v2 — Stepper + dropzone + settings card. */
+
+.vs-up2 {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.vs-up2__stepper {
+    display: flex;
+    justify-content: center;
+}
+
+.vs-up2__grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    max-width: 1080px;
+    width: 100%;
+    margin: 0 auto;
+}
+@media (max-width: 900px) { .vs-up2__grid { grid-template-columns: 1fr; } }
+
+/* Dropzone */
+.vs-up2__drop {
+    aspect-ratio: 4 / 3;
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--r-lg);
+    background: var(--bg-elev);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px;
+    transition: border-color var(--t-fast) var(--ease),
+                background var(--t-fast) var(--ease);
+}
+
+.vs-up2__drop--active {
+    border-color: var(--accent);
+    background: var(--bg-sunken);
+}
+
+.vs-up2__drop-ic {
+    width: 48px; height: 48px;
+    border-radius: var(--r-md);
+    background: var(--bg-sunken);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg);
+}
+
+.vs-up2__drop-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.vs-up2__drop-sub   { font-size: 13px; color: var(--fg-muted); }
+
+.vs-up2__file-hidden { display: none; }
+
+.vs-up2__file-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    background: var(--bg-elev);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease);
+}
+.vs-up2__file-btn:hover { background: var(--bg-sunken); }
+
+.vs-up2__error {
+    color: var(--danger);
+    font-size: 12px;
+}
+
+.vs-up2__progress {
+    color: var(--fg-muted);
+    font-size: 12px;
+    font-family: var(--font-mono);
+}
+
+/* Shortcuts strip */
+.vs-up2__shortcuts {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+}
+
+.vs-up2__shortcuts-label { font-size: 12px; color: var(--fg-muted); margin-bottom: 10px; }
+
+.vs-up2__chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.vs-up2__chip {
+    padding: 6px 12px;
+    font-size: 13px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    color: var(--fg);
+    transition: background var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease);
+}
+.vs-up2__chip:hover { border-color: var(--border-strong); }
+
+/* Settings */
+.vs-up2__settings-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--fg); }

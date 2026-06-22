@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="shieldG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2A57A8"/>
+      <stop offset="100%" stop-color="#1E4289"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(256,256) scale(6.4) translate(-24,-24)">
+    <path d="M24 0 L46 6 V26 C46 38 36 46 24 48 C12 46 2 38 2 26 V6 Z" fill="url(#shieldG)"/>
+    <path d="M14 24 L21 31 L34 17" stroke="#F8CF3F" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <g transform="translate(36,4) scale(0.55)">
+      <path d="M6 0 L7.4 4.3 L12 4.3 L8.3 7 L9.7 11.3 L6 8.6 L2.3 11.3 L3.7 7 L0 4.3 L4.6 4.3 Z" fill="#F8CF3F"/>
+    </g>
+  </g>
+</svg>

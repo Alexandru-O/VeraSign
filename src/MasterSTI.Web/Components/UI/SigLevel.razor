@@ -1,0 +1,48 @@
+@* SigLevel — eIDAS signature level badge (v2).
+   Mirrors prototype/components/Brand.jsx SigLevel (lines 146-159).
+   sm  -> Pill (with dot)
+   md  -> mono "QES · Calificată" inline label
+   No gold star (removed in v2). *@
+
+@if (Size == "sm")
+{
+    <Pill Tone="@_tone" Dot="true">@_label</Pill>
+}
+else
+{
+    <span class="vs-siglevel vs-siglevel--md">
+        <span class="vs-siglevel__label">@_label</span>
+        @if (!string.IsNullOrEmpty(_desc))
+        {
+            <span class="vs-siglevel__sub">· @_desc</span>
+        }
+    </span>
+}
+
+@code {
+    /// <summary>"SES" | "AdES" | "QES".</summary>
+    [Parameter, EditorRequired] public string Level { get; set; } = "QES";
+
+    /// <summary>"sm" | "md".</summary>
+    [Parameter] public string Size { get; set; } = "md";
+
+    /// <summary>Legacy: append RO subtitle when md.</summary>
+    [Parameter] public bool ShowSubtitle { get; set; } = true;
+
+    private string _label => Level;
+
+    private string _tone => Level switch
+    {
+        "QES"  => "success",
+        "AdES" => "info",
+        _      => "neutral",
+    };
+
+    private string _desc => Level switch
+    {
+        "QES"  => "Calificată",
+        "AdES" => "Avansată",
+        "SES"  => "Simplă",
+        _ => string.Empty,
+    };
+}

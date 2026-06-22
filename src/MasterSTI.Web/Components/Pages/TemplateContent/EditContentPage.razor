@@ -1,0 +1,239 @@
+@page "/templates/{Id:guid}/edit-content"
+@rendermode InteractiveServer
+@using MasterSTI.Shared.DTOs.Templates
+@using MasterSTI.Web.Components.Pages.TemplatesParts
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>VeraSign · Editează conținut</PageTitle>
+<PageHeader Title="@(_template is null ? "Editează conținut" : $"Editează conținut · {_template.Title}")"
+            Breadcrumb="Șabloane · Editare conținut"/>
+
+<div class="vs-tpl-edit">
+    @if (_loading)
+    {
+        <Card Padding="32" AdditionalClass="vs-tpl-edit__loading">
+            <div class="vs-tpl-edit__skel-bar"></div>
+            <div class="vs-tpl-edit__skel-bar vs-tpl-edit__skel-bar--short"></div>
+        </Card>
+    }
+    else if (_template is null)
+    {
+        <Card Padding="32">
+            <div class="vs-tpl-edit__error" role="alert">
+                @(_loadError ?? "Șablonul nu a fost găsit.")
+            </div>
+            <Btn Variant="ghost" Icon="arrow-left" OnClick="GoBack">Înapoi la șabloane</Btn>
+        </Card>
+    }
+    else
+    {
+        <div class="vs-tpl-edit__split">
+            <!-- LEFT: editor -->
+            <div class="vs-tpl-edit__pane vs-tpl-edit__pane--left">
+                <div class="vs-tpl-edit__pane-head">
+                    <div>
+                        <div class="vs-tpl-edit__pane-title">Conținut markdown</div>
+                        <div class="vs-tpl-edit__pane-sub">Modifică textul, apoi salvează pentru a regenera PDF-ul.</div>
+                    </div>
+                </div>
+
+                <div class="vs-tpl-edit__hint-bar">
+                    <Pill Tone="neutral"># titlu</Pill>
+                    <Pill Tone="neutral">## subtitlu</Pill>
+                    <Pill Tone="neutral">- listă</Pill>
+                    <Pill Tone="neutral">&gt; eyebrow</Pill>
+                    <Pill Tone="neutral">---</Pill>
+                    <Pill Tone="neutral">[SIGNATURE]</Pill>
+                </div>
+
+                <div class="vs-tpl-edit__editor-wrap">
+                    <textarea class="vs-tpl-edit__editor"
+                              spellcheck="false"
+                              @bind="_body"
+                              @bind:event="oninput"
+                              placeholder="Începe cu # Titlu sau &gt; eyebrow..."></textarea>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_apiError))
+                {
+                    <div class="vs-tpl-edit__error" role="alert">@_apiError</div>
+                }
+
+                <div class="vs-tpl-edit__pane-foot">
+                    <div class="vs-tpl-edit__status">
+                        @if (_saving)
+                        {
+                            <span class="vs-tpl-edit__spinner" aria-hidden="true"></span>
+                            <span>Se salvează…</span>
+                        }
+                        else if (_lastSavedAt is not null)
+                        {
+                            <Icon Name="check-circle" Size="14"/>
+                            <span>Salvat la @_lastSavedAt.Value.ToLocalTime().ToString("HH:mm:ss")</span>
+                        }
+                        else
+                        {
+                            <span>Modificările nu sunt salvate.</span>
+                        }
+                    </div>
+                    <div class="vs-tpl-edit__actions">
+                        <Btn Variant="ghost" OnClick="GoBack">Anulează</Btn>
+                        <Btn Variant="secondary" Icon="upload" OnClick="OpenReplaceDialog">Încarcă PDF în loc</Btn>
+                        <Btn Variant="primary" Icon="check" OnClick="SaveAsync" Loading="_saving">Salvează și regenerează</Btn>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: preview -->
+            <div class="vs-tpl-edit__pane vs-tpl-edit__pane--right">
+                <div class="vs-tpl-edit__pane-head vs-tpl-edit__pane-head--sticky">
+                    <div>
+                        <div class="vs-tpl-edit__pane-title">Previzualizare PDF</div>
+                        <div class="vs-tpl-edit__pane-sub">Reflectă ultima versiune salvată.</div>
+                    </div>
+                    <Btn Variant="secondary" Size="sm" Icon="eye" OnClick="RefreshPreview">Actualizează</Btn>
+                </div>
+
+                <div class="vs-tpl-edit__preview">
+                    <iframe class="vs-tpl-edit__iframe"
+                            title="Previzualizare PDF șablon"
+                            src="@_previewUrl"></iframe>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (_showReplaceDialog && _template is not null)
+{
+    <ReplacePdfDialog TemplateId="_template.Id"
+                      OnClose="CloseReplaceDialog"
+                      OnReplaced="HandlePdfReplaced"/>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private TemplateDto? _template;
+    private string _body = "";
+    private bool _loading = true;
+    private bool _saving;
+    private string? _loadError;
+    private string? _apiError;
+    private DateTime? _lastSavedAt;
+
+    private bool _showReplaceDialog;
+
+    private string _cacheBuster = Guid.NewGuid().ToString("N");
+    private string _previewUrl = string.Empty;
+
+    private string ApiBaseUrl =>
+        HttpClientFactory.CreateClient("MasterSTI.Api").BaseAddress?.ToString().TrimEnd('/')
+        ?? string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _loadError = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.GetAsync($"/api/templates/{Id}");
+            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _loadError = "Șablonul nu a fost găsit.";
+                _template = null;
+                return;
+            }
+            if (!resp.IsSuccessStatusCode)
+            {
+                _loadError = $"Nu am putut încărca șablonul ({(int)resp.StatusCode}).";
+                _template = null;
+                return;
+            }
+
+            _template = await resp.Content.ReadFromJsonAsync<TemplateDto>();
+            _body = _template?.BodyMarkdown ?? "";
+            UpdatePreviewUrl();
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"Eroare: {ex.Message}";
+            _template = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void UpdatePreviewUrl()
+    {
+        if (_template is null)
+        {
+            _previewUrl = string.Empty;
+            return;
+        }
+        _previewUrl = $"/pdf/templates/{_template.Id}?v={_cacheBuster}";
+    }
+
+    private void RefreshPreview()
+    {
+        _cacheBuster = Guid.NewGuid().ToString("N");
+        UpdatePreviewUrl();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_template is null || _saving) return;
+        _saving = true;
+        _apiError = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var payload = new { BodyMarkdown = _body ?? "" };
+            var resp = await client.PutAsJsonAsync($"/api/templates/{_template.Id}/content", payload);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _apiError = $"Salvarea a eșuat ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            var updated = await resp.Content.ReadFromJsonAsync<TemplateDto>();
+            if (updated is not null)
+            {
+                _template = updated;
+                _body = updated.BodyMarkdown ?? "";
+            }
+            _lastSavedAt = DateTime.UtcNow;
+            RefreshPreview();
+        }
+        catch (Exception ex)
+        {
+            _apiError = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void OpenReplaceDialog() => _showReplaceDialog = true;
+    private void CloseReplaceDialog() => _showReplaceDialog = false;
+
+    private async Task HandlePdfReplaced()
+    {
+        _showReplaceDialog = false;
+        // Reload metadata (BodyMarkdown is now null) and refresh preview.
+        await LoadAsync();
+        RefreshPreview();
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/templates");
+}

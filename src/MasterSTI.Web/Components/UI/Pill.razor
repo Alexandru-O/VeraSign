@@ -1,0 +1,38 @@
+@* Pill — status / tag (v2). Mirrors prototype Brand.jsx Pill (lines 122-143).
+   Legacy tones (blue, gold, warn, red) kept aliased to v2 ramp. *@
+
+<span class="vs-pill vs-pill--@_resolvedTone @(Glow ? "vs-pill--glow" : null)">
+    @if (Dot)
+    {
+        <span class="vs-pill__dot" aria-hidden="true"></span>
+    }
+    else if (!string.IsNullOrEmpty(Icon))
+    {
+        <Icon Name="@Icon" Size="12"/>
+    }
+    <span class="vs-pill__label">@ChildContent</span>
+</span>
+
+@code {
+    /// <summary>"neutral" | "info" | "success" | "warning" | "danger" |
+    /// legacy: "blue" / "gold" / "warn" / "amber" / "red".</summary>
+    [Parameter] public string Tone { get; set; } = "neutral";
+
+    /// <summary>Show a colored dot before the label (prototype default).</summary>
+    [Parameter] public bool Dot { get; set; }
+
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public bool Glow { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Map legacy tone names to v2 names.</summary>
+    private string _resolvedTone => Tone switch
+    {
+        "warn"   => "warning",
+        "amber"  => "warning",
+        "red"    => "danger",
+        "blue"   => "info",
+        "gold"   => "neutral",
+        _ => Tone,
+    };
+}

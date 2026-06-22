@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Consent — port of MobileScreens.jsx MConsent.
+    "Confirmi semnarea?" title, body, Card with rows.
+    PRESERVES the existing OID4VP claims-list logic + biometric gate +
+    PresentationBuilder/PresentationClient wiring in code-behind.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.ConsentPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Top bar -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              Padding="20,52,20,12">
+            <Border Grid.Column="0"
+                    BackgroundColor="Transparent"
+                    StrokeThickness="0"
+                    WidthRequest="36"
+                    HeightRequest="36"
+                    StrokeShape="RoundRectangle 18">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBackTapped" />
+                </Border.GestureRecognizers>
+                <controls:IconView Name="arrow-left"
+                                   Size="20"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+            </Border>
+            <Label Grid.Column="1"
+                   Text="Consimțământ"
+                   FontSize="15"
+                   FontFamily="{StaticResource FontSansSemiBold}"
+                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                   VerticalTextAlignment="Center" />
+        </Grid>
+
+        <!-- Body -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="24,8,24,16" Spacing="0">
+
+                <Label Text="Confirmi semnarea?"
+                       FontSize="22"
+                       FontFamily="{StaticResource FontSansSemiBold}"
+                       TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}"
+                       Margin="0,0,0,12" />
+
+                <Label FontSize="14"
+                       LineHeight="1.55"
+                       Margin="0,0,0,20"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="Vei semna " />
+                            <Span x:Name="DocBodySpan"
+                                  Text="—"
+                                  FontAttributes="Bold"
+                                  TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                            <Span Text=". Semnătura va fi calificată (QES) și va avea aceeași valoare juridică precum o semnătură olografă în toată UE." />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+
+                <!-- Detalii section header -->
+                <Label Text="DETALII"
+                       FontSize="11"
+                       FontFamily="{StaticResource FontSansMedium}"
+                       CharacterSpacing="1.5"
+                       TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                       Margin="0,0,0,12" />
+
+                <!-- Main details card -->
+                <controls:CardView PaddingValue="16">
+                    <VerticalStackLayout Spacing="0">
+                        <!-- Document row -->
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                            <Label Grid.Column="0" Text="Document"
+                                   FontSize="13"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                            <Label x:Name="DocumentLabel"
+                                   Grid.Column="1" Text="—"
+                                   FontSize="13"
+                                   FontFamily="{StaticResource FontSansMedium}"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                        </Grid>
+
+                        <!-- Level row -->
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                            <Label Grid.Column="0" Text="Nivel"
+                                   FontSize="13"
+                                   VerticalOptions="Center"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                            <controls:SigLevelView x:Name="LevelView" Grid.Column="1" Level="QES" Size="sm" />
+                        </Grid>
+
+                        <!-- Storage location -->
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                            <Label Grid.Column="0" Text="Locație de păstrare"
+                                   FontSize="13"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                            <Label Grid.Column="1" Text="QSCD calificat (HSM)"
+                                   FontSize="13"
+                                   FontFamily="{StaticResource FontSansMedium}"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                        </Grid>
+
+                        <!-- Solicitant row (preserved binding from real OID4VP request) -->
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,6">
+                            <Label Grid.Column="0" Text="Solicitant"
+                                   FontSize="13"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                            <Label x:Name="RequesterLabel"
+                                   Grid.Column="1" Text="—"
+                                   FontSize="13"
+                                   FontFamily="{StaticResource FontSansMedium}"
+                                   TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </controls:CardView>
+
+                <!-- Disclosed claims (preserved from real OID4VP) -->
+                <controls:CardView x:Name="ClaimsCard" PaddingValue="16" Margin="0,12,0,0">
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="VOR FI DEZVĂLUITE"
+                               FontSize="11"
+                               CharacterSpacing="1.5"
+                               FontFamily="{StaticResource FontSansMedium}"
+                               TextColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}"
+                               Margin="0,0,0,8" />
+                        <VerticalStackLayout x:Name="ClaimsHost" Spacing="0" />
+                    </VerticalStackLayout>
+                </controls:CardView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Bottom CTA bar (Refuză + Confirmă) -->
+        <Grid Grid.Row="2"
+              BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+              Padding="20"
+              RowDefinitions="1,Auto">
+            <BoxView Grid.Row="0"
+                     Color="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                     HeightRequest="1"
+                     HorizontalOptions="Fill"
+                     VerticalOptions="Start"
+                     Margin="-20,-20,-20,0" />
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <controls:BtnView x:Name="RejectButton"
+                                  Grid.Column="0"
+                                  Text="Refuză"
+                                  Variant="secondary"
+                                  Size="lg"
+                                  Clicked="OnRejectClicked" />
+                <controls:BtnView x:Name="ApproveButton"
+                                  Grid.Column="1"
+                                  Text="Confirmă"
+                                  Variant="primary"
+                                  Size="lg"
+                                  Full="True"
+                                  IconRight="check"
+                                  Clicked="OnApproveClicked" />
+            </Grid>
+        </Grid>
+    </Grid>
+
+</ContentPage>

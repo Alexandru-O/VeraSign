@@ -1,0 +1,234 @@
+@* WalletLoginDialog — modal shown after clicking "Autentificare cu EU Wallet" on the login screen.
+   Displays QR code for scanning with the MAUI wallet and polls GET /api/wallet/auth/{state}
+   until the wallet completes the presentation or the session expires. *@
+
+@using System.Net.Http.Json
+@using System.Text.Json.Serialization
+@using MasterSTI.Shared.DTOs.Auth
+@using MasterSTI.Shared.DTOs.Wallet
+@inject IHttpClientFactory HttpFactory
+@inject UiConfig UiCfg
+@implements IDisposable
+
+@if (_visible)
+{
+    <div class="vs-modal-backdrop" @onclick="OnBackdropClick" role="dialog" aria-modal="true" aria-labelledby="wld-title">
+        <div class="vs-modal vs-wallet-login-dialog" @onclick:stopPropagation="true">
+
+            <div class="vs-modal__header">
+                <div class="vs-modal__title" id="wld-title">
+                    <Icon Name="wallet" Size="18"/>
+                    <span>Autentificare cu EU Wallet</span>
+                </div>
+            </div>
+
+            <div class="vs-modal__body vs-wallet-login-dialog__body">
+
+                @if (_errorMessage is not null)
+                {
+                    <div class="vs-wallet-login-dialog__error" role="alert">@_errorMessage</div>
+                    <div class="vs-wallet-login-dialog__retry">
+                        <Btn Variant="primary" Size="md" OnClick="RetryAsync">Generează cod nou</Btn>
+                    </div>
+                }
+                else if (_qrCode is not null)
+                {
+                    <div class="vs-wallet-login-dialog__qr-frame">
+                        <QR Value="@_qrCode" Size="240"/>
+                    </div>
+                    <p class="vs-wallet-login-dialog__caption">
+                        Scanează codul QR cu aplicația EU Wallet
+                    </p>
+
+                    <a href="@SimulatorUrl" target="_blank" class="vs-wallet-login-dialog__sim-link">
+                        Sau folosește simulatorul de browser &rarr;
+                    </a>
+
+                    <div class="vs-wallet-login-dialog__polling">
+                        @if (_polling)
+                        {
+                            <span class="vs-btn__spinner" aria-hidden="true"></span>
+                            <span>Aștept răspunsul wallet-ului&hellip;</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="vs-wallet-login-dialog__loading">
+                        <span class="vs-btn__spinner" aria-hidden="true"></span>
+                        <span>Se inițializează&hellip;</span>
+                    </div>
+                }
+
+            </div>
+
+            <div class="vs-modal__footer">
+                <Btn Variant="ghost" OnClick="CancelAsync">Anulează</Btn>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback<LoginResponse> OnSuccess { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private bool _visible;
+    private string? _qrCode;
+    private string? _state;
+    private string? _nonce;
+    private string? _errorMessage;
+    private bool _polling;
+    private CancellationTokenSource? _cts;
+
+    private string SimulatorUrl =>
+        $"{UiCfg.MockIssuerPublicBaseUrl}/simulate/eudiw-login?state={Uri.EscapeDataString(_state ?? string.Empty)}" +
+        $"&nonce={Uri.EscapeDataString(_nonce ?? string.Empty)}";
+
+    public async Task ShowAsync()
+    {
+        _visible = true;
+        _qrCode = null;
+        _state = null;
+        _errorMessage = null;
+        _polling = false;
+        _cts = new CancellationTokenSource();
+        StateHasChanged();
+
+        try
+        {
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+            var initResp = await client.PostAsJsonAsync(
+                "/api/wallet/auth",
+                new WalletAuthInitRequest(WalletAuthPurpose.Login),
+                _cts.Token);
+
+            if (!initResp.IsSuccessStatusCode)
+            {
+                _errorMessage = "Nu s-a putut iniția autentificarea wallet. Încearcă din nou.";
+                StateHasChanged();
+                return;
+            }
+
+            var init = await initResp.Content.ReadFromJsonAsync<InitiateWalletAuthResponse>(_cts.Token);
+            if (init is null)
+            {
+                _errorMessage = "Răspuns invalid de la server.";
+                StateHasChanged();
+                return;
+            }
+
+            _state = init.State;
+            _qrCode = init.QrCode;
+            _nonce = init.Nonce;
+            _polling = true;
+            StateHasChanged();
+
+            await PollAsync(init.State, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelled by user
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Eroare: {ex.Message}";
+            _polling = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PollAsync(string state, CancellationToken ct)
+    {
+        var client = HttpFactory.CreateClient("MasterSTI.Api");
+
+        while (!ct.IsCancellationRequested)
+        {
+            await Task.Delay(1500, ct);
+
+            WalletAuthStatusResponse? status;
+            try
+            {
+                status = await client.GetFromJsonAsync<WalletAuthStatusResponse>(
+                    $"/api/wallet/auth/{Uri.EscapeDataString(state)}", ct);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (status is null) continue;
+
+            if (string.Equals(status.Status, "complete", StringComparison.OrdinalIgnoreCase)
+                && status.Login is not null)
+            {
+                _polling = false;
+                _visible = false;
+                StateHasChanged();
+                await OnSuccess.InvokeAsync(status.Login);
+                return;
+            }
+
+            if (string.Equals(status.Status, "expired", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(status.Status, "failed", StringComparison.OrdinalIgnoreCase))
+            {
+                _errorMessage = "Autentificarea a expirat. Încearcă din nou.";
+                _polling = false;
+                StateHasChanged();
+                return;
+            }
+        }
+    }
+
+    private async Task RetryAsync()
+    {
+        // Cancel current session (if any) and restart the init+poll cycle.
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
+        await ShowAsync();
+    }
+
+    private void OnBackdropClick() => _ = CancelAsync();
+
+    private async Task CancelAsync()
+    {
+        _cts?.Cancel();
+        _polling = false;
+        _visible = false;
+        StateHasChanged();
+        await OnCancel.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Extracts the nonce value from the openid4vp:// deep link query string.
+    /// The QR payload is openid4vp://?...&amp;nonce=VALUE&amp;...
+    /// </summary>
+    private static string? ExtractNonce(string requestUri)
+    {
+        try
+        {
+            var query = requestUri.Contains('?') ? requestUri[(requestUri.IndexOf('?') + 1)..] : string.Empty;
+            foreach (var part in query.Split('&'))
+            {
+                var eq = part.IndexOf('=');
+                if (eq < 0) continue;
+                var key = Uri.UnescapeDataString(part[..eq]);
+                if (string.Equals(key, "nonce", StringComparison.Ordinal))
+                    return Uri.UnescapeDataString(part[(eq + 1)..]);
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

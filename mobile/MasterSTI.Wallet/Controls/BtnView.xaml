@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    BtnView v2 — token-styled button (port of prototype Brand.jsx Btn).
+    Variant: primary | secondary | ghost | danger | gold | primaryDark.
+    Size: sm | md | lg (heights 32 / 40 / 48).
+    Theme-aware via AppThemeBinding.
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Controls.BtnView">
+
+    <Border x:Name="ButtonBorder"
+            StrokeThickness="0"
+            BackgroundColor="{AppThemeBinding Light={StaticResource AccentLight}, Dark={StaticResource AccentDark}}"
+            Padding="16,0"
+            HeightRequest="40"
+            HorizontalOptions="Start"
+            StrokeShape="RoundRectangle 8">
+        <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnTapped" />
+        </Border.GestureRecognizers>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity" Value="0.85" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </VisualStateManager.VisualStateGroups>
+        <Grid HorizontalOptions="Center"
+              VerticalOptions="Center">
+            <HorizontalStackLayout x:Name="ContentStack"
+                                   Spacing="8"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="Center">
+                <controls:IconView x:Name="LeftIcon"
+                                   IsVisible="False"
+                                   Size="14" />
+                <Label x:Name="ButtonLabel"
+                       Text="Button"
+                       FontSize="14"
+                       FontFamily="{StaticResource FontSansMedium}"
+                       VerticalTextAlignment="Center" />
+                <controls:IconView x:Name="RightIcon"
+                                   IsVisible="False"
+                                   Size="14" />
+            </HorizontalStackLayout>
+            <ActivityIndicator x:Name="BusySpinner"
+                               IsVisible="False"
+                               IsRunning="False"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+        </Grid>
+    </Border>
+
+</ContentView>

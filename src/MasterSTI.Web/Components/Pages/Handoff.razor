@@ -1,0 +1,102 @@
+@page "/handoff"
+@layout BlankLayout
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+@using System.Net.Http.Json
+@using MasterSTI.Shared.DTOs.Handoff
+
+<PageTitle>VeraSign · Invitație la semnătură</PageTitle>
+
+<div class="vs-handoff">
+    <header class="vs-handoff__brand">
+        <div class="vs-handoff__dot"><div class="vs-handoff__dot-inner"></div></div>
+        <span>veraSign</span>
+    </header>
+
+    <main class="vs-handoff__card">
+        @if (_loading)
+        {
+            <p class="vs-handoff__muted">Se verifică invitația…</p>
+        }
+        else if (_preview is null || !_preview.TokenValid)
+        {
+            <h1>Invitație invalidă</h1>
+            <p class="vs-handoff__muted">
+                Linkul de semnătură nu mai este valabil. Cere expeditorului să retrimită
+                invitația sau verifică dacă ai deschis cel mai recent email.
+            </p>
+        }
+        else if (!_preview.StatusActive)
+        {
+            <h1>Invitație consumată</h1>
+            <p class="vs-handoff__muted">
+                Documentul „<strong>@_preview.DocumentName</strong>" este deja în starea
+                <em>@_preview.RecipientStatus</em> pentru acest semnatar. Nu mai este
+                nimic de făcut din acest link.
+            </p>
+        }
+        else
+        {
+            <h1>Trebuie să semnezi</h1>
+            <div class="vs-handoff__doc">
+                <div class="vs-handoff__doc-name">@_preview.DocumentName</div>
+                <div class="vs-handoff__doc-meta">
+                    Trimis de <strong>@_preview.SenderName</strong> · nivel <strong>@_preview.Level</strong>
+                </div>
+            </div>
+
+            <p class="vs-handoff__copy">
+                Deschide invitația în aplicația VeraSign Wallet de pe Android. Dacă
+                ai deja walletul instalat pe acest dispozitiv, apasă butonul; dacă
+                te uiți de pe laptop, scanează codul QR cu camera walletului.
+            </p>
+
+            <a class="vs-handoff__cta" href="@_deepLink">Deschide în wallet</a>
+
+            <div class="vs-handoff__qr">
+                <QR Value="@_deepLink" Size="220" />
+                <div class="vs-handoff__qr-cap">Scanează cu VeraSign Wallet</div>
+            </div>
+
+            <p class="vs-handoff__muted vs-handoff__expiry">
+                Linkul expiră la @_preview.ExpiresAt.ToLocalTime().ToString("dd MMM yyyy HH:mm").
+            </p>
+        }
+    </main>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "t")] public string? Token { get; set; }
+
+    private bool _loading = true;
+    private HandoffPreviewResponse? _preview;
+    private string _deepLink = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            _loading = false;
+            return;
+        }
+
+        _deepLink = $"verasign://sign?token={Token}";
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.PostAsJsonAsync("/api/handoff/preview", new HandoffPreviewRequest(Token));
+            if (resp.IsSuccessStatusCode)
+                _preview = await resp.Content.ReadFromJsonAsync<HandoffPreviewResponse>();
+        }
+        catch
+        {
+            _preview = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

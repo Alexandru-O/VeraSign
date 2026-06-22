@@ -1,0 +1,221 @@
+/* PlaceFieldsView v2 — token-driven re-style. Canvas + drag interactions
+   are unchanged; only chrome colors swapped. */
+
+.vs-pf {
+    display: grid;
+    grid-template-columns: 200px 1fr 240px;
+    gap: 14px;
+    width: 100%;
+}
+@media (max-width: 1100px) { .vs-pf { grid-template-columns: 1fr; } }
+
+.vs-pf__eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-family: var(--font-mono);
+}
+
+.vs-pf__tools { display: flex; flex-direction: column; gap: 6px; }
+
+.vs-pf__tool {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-elev);
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+}
+
+.vs-pf__tool--on {
+    background: var(--bg-sunken);
+    color: var(--fg);
+    border-color: var(--accent);
+}
+
+.vs-pf__hint {
+    margin-top: 18px;
+    font-size: 11px;
+    color: var(--fg-muted);
+    line-height: 1.5;
+}
+
+.vs-pf__eyebrow--mt { margin-top: 14px; }
+
+.vs-pf__signer {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--bg-elev);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    font-size: 12px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+}
+.vs-pf__signer:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+.vs-pf__signer--row {
+    margin-top: 4px;
+    padding: 4px 6px;
+    font-size: 11px;
+    background: var(--bg-elev);
+}
+
+/* Canvas card */
+.vs-pf__canvas-card { overflow: hidden; }
+
+.vs-pf__canvas-head {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--fg-muted);
+}
+.vs-pf__file { font-weight: 500; color: var(--fg); }
+.vs-pf__zoom { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.vs-pf__zoom-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    color: var(--fg);
+}
+.vs-pf__zoom-val { font-size: 12px; font-family: var(--font-mono); }
+
+.vs-pf__canvas-bg { padding: 20px; background: var(--bg-sunken); }
+
+/* Mock-only fallback canvas. Real-PDF mode uses .vs-pf__canvas--scroll +
+   .vs-pf__pdf-host (see app.css; rendered by place-fields.js). */
+.vs-pf__canvas {
+    background: var(--bg-elev);
+    border-radius: var(--r-sm);
+    min-height: calc(100vh - 240px);
+    padding: 40px 48px;
+    font-family: var(--font-sans);
+    position: relative;
+    box-shadow: var(--sh-md);
+}
+.vs-pf__canvas--placing { cursor: crosshair; }
+
+.vs-pf__doc-title {
+    text-align: center;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    color: var(--fg);
+}
+.vs-pf__doc-body {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    line-height: 1.6;
+    color: var(--fg);
+}
+.vs-pf__doc-body p { margin: 0 0 10px; }
+
+.vs-pf__doc-grid {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+.vs-pf__role { font-weight: 600; color: var(--fg); }
+.vs-pf__role-sub { font-size: 9px; color: var(--fg-muted); margin-top: 2px; }
+.vs-pf__sigline {
+    border-top: 1px dashed var(--border-strong);
+    margin-top: 30px;
+    padding-top: 4px;
+    font-size: 9px;
+    color: var(--fg-muted);
+}
+
+/* Right column */
+.vs-pf__list { display: flex; flex-direction: column; gap: 8px; }
+.vs-pf__empty { font-size: 12px; color: var(--fg-subtle); }
+.vs-pf__list-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--bg-sunken);
+    border-radius: var(--r-md);
+}
+.vs-pf__list-ic {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--r-md);
+    background: var(--bg-elev);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.vs-pf__list-mid { flex: 1; min-width: 0; }
+.vs-pf__list-kind {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--fg);
+    text-transform: capitalize;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.vs-pf__list-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: var(--r-pill);
+    background: var(--ro-blue-500);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+}
+.vs-pf__list-who  { font-size: 11px; color: var(--fg-muted); }
+.vs-pf__remove {
+    color: var(--fg-subtle);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+}
+.vs-pf__remove:hover { color: var(--danger); }
+
+.vs-pf__cta {
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 16px;
+    padding-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vs-pf__cta-hint {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-muted, #606878);
+    background: var(--warn-50, #fffbeb);
+    border: 1px solid var(--warn-200, #fde68a);
+    border-radius: var(--r-sm, 6px);
+    padding: 8px 10px;
+}

@@ -1,0 +1,151 @@
+/* WSettings v2 — tab strip + certificate card + TSP list. */
+
+.vs-set2 {
+    max-width: 720px;
+}
+
+.vs-set2__tabs {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.vs-set2__tab {
+    padding: 8px 0;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    color: var(--fg-muted);
+    font-weight: 400;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    transition: color var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease);
+}
+
+.vs-set2__tab--on {
+    color: var(--fg);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+}
+
+.vs-set2__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.vs-set2__cert-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.vs-set2__cert-title { font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
+.vs-set2__cert-sub   { font-size: 12px; color: var(--fg-muted); }
+
+.vs-set2__cert-rows {
+    display: grid;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 13px;
+}
+.vs-set2__cert-rows > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+.vs-set2__cert-rows > div > span:first-child { color: var(--fg-subtle); }
+
+.vs-set2__tsp {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+}
+.vs-set2__tsp--sep { border-top: 1px solid var(--border-subtle); }
+
+.vs-set2__tsp-ic {
+    width: 32px; height: 32px;
+    border-radius: var(--r-md);
+    background: var(--bg-sunken);
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vs-set2__tsp-mid { flex: 1; min-width: 0; }
+.vs-set2__tsp-name { font-size: 13px; font-weight: 500; color: var(--fg); }
+.vs-set2__tsp-cc   { font-size: 11px; color: var(--fg-subtle); }
+
+.vs-set2__audit-filters {
+    display: flex;
+    gap: 6px;
+}
+
+.vs-set2__chip {
+    border: 1px solid var(--border, #DFE4EC);
+    background: transparent;
+    border-radius: var(--r-pill, 999px);
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--fg-2, #424A59);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vs-set2__chip:hover { background: var(--bg-sunken, #F4F6FB); }
+
+.vs-set2__chip--on {
+    background: var(--ro-blue-500, #1D4FBC);
+    color: #FFFFFF;
+    border-color: var(--ro-blue-500, #1D4FBC);
+}
+
+.vs-set2__audit-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--fg-3, #606878);
+    font-size: 13px;
+    font-style: italic;
+}
+
+.vs-set2__audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+    font-size: 12.5px;
+    margin-top: 14px;
+}
+
+.vs-set2__audit-table th,
+.vs-set2__audit-table td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle, #E5EAF2);
+    vertical-align: middle;
+}
+
+.vs-set2__audit-table th {
+    font-weight: 600;
+    color: var(--fg-2, #424A59);
+    background: var(--bg-sunken, #F4F6FB);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vs-set2__audit-foot {
+    padding: 10px 16px;
+    font-size: 11.5px;
+    color: var(--fg-3, #606878);
+    text-align: right;
+}

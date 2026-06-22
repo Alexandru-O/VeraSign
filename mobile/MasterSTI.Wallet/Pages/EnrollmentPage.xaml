@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Re-styled enrollment screen aligned with prototype Onboarding3
+    ("Conectează-te la VeraSign · Scanează codul QR"). Existing
+    code-behind preserved (calls /eudiw/issue-pid via EnrollmentService).
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.EnrollmentPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{StaticResource Bg}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="28,72,28,32" Spacing="14">
+
+            <controls:LogoView Variant="full" Size="32" HorizontalOptions="Start" />
+
+            <Label Text="Conectează-te la VeraSign"
+                   FontFamily="{StaticResource FontSerif}"
+                   FontSize="30"
+                   TextColor="{StaticResource RoBlue900}"
+                   LineHeight="1.1"
+                   Margin="0,18,0,0" />
+            <Label Text="Scanează codul QR afișat pe desktop, apoi confirmă cu biometria pentru a genera cheia din enclava de securitate."
+                   FontSize="14"
+                   TextColor="{StaticResource Fg3}"
+                   LineHeight="1.5"
+                   Margin="0,0,0,4" />
+
+            <controls:CardView PaddingValue="0">
+                <Grid RowDefinitions="Auto,Auto">
+                    <Grid Grid.Row="0"
+                          BackgroundColor="{StaticResource RoBlue500}"
+                          Padding="20"
+                          RowDefinitions="Auto,Auto,Auto"
+                          RowSpacing="12">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Text="ROMÂNIA · CARD ELECTRONIC"
+                                   FontSize="11"
+                                   TextColor="{StaticResource RoBlue100}"
+                                   CharacterSpacing="1.6" />
+                            <Label Grid.Column="1"
+                                   Text="★ ★ ★"
+                                   FontSize="14"
+                                   TextColor="{StaticResource Gold300}" />
+                        </Grid>
+                        <Label Grid.Row="1"
+                               Text="POPESCU&#10;Ion"
+                               FontFamily="{StaticResource FontSerif}"
+                               FontSize="22"
+                               TextColor="White"
+                               LineHeight="1.1" />
+                        <Label Grid.Row="2"
+                               Text="CNP · 1900115••••••"
+                               FontFamily="{StaticResource FontMono}"
+                               FontSize="11"
+                               TextColor="{StaticResource RoBlue100}" />
+                    </Grid>
+                    <Label Grid.Row="1"
+                           Padding="16"
+                           FontSize="13"
+                           TextColor="{StaticResource Fg2}"
+                           Text="Generăm cheia EC P-256 în enclava sigură (StrongBox), apoi obținem PID-ul SD-JWT cu key binding RFC 7800." />
+                </Grid>
+            </controls:CardView>
+
+            <ActivityIndicator x:Name="BusyIndicator"
+                               Color="{StaticResource RoBlue500}"
+                               IsRunning="False"
+                               IsVisible="False"
+                               HorizontalOptions="Center"
+                               Margin="0,8,0,0" />
+
+            <Label x:Name="StatusLabel"
+                   IsVisible="False"
+                   FontSize="13"
+                   TextColor="{StaticResource Danger500}"
+                   HorizontalTextAlignment="Center"
+                   HorizontalOptions="Center" />
+
+            <controls:BtnView x:Name="EnrollBtn"
+                              Text="Generează cheia și înrolează"
+                              Variant="primary"
+                              Size="lg"
+                              Full="True"
+                              Clicked="OnEnrollTapped"
+                              Margin="0,8,0,0" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

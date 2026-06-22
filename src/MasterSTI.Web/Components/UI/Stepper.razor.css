@@ -1,0 +1,77 @@
+/* Stepper — horizontal stepper with 22px circular nodes + connector bars (v2). */
+
+.vs-stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-sans);
+    flex-wrap: wrap;
+}
+
+.vs-stepper__step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vs-stepper__node {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    border: 1px solid var(--border);
+    background: var(--bg-sunken);
+    color: var(--fg-subtle);
+    transition: background var(--t-med) var(--ease),
+                color var(--t-med) var(--ease),
+                border-color var(--t-med) var(--ease);
+}
+
+.vs-stepper__node--idle {
+    background: var(--bg-sunken);
+    color: var(--fg-subtle);
+    border-color: var(--border);
+}
+
+.vs-stepper__node--current {
+    background: var(--bg-elev);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.vs-stepper__node--done {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+}
+
+.vs-stepper__label {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--fg-subtle);
+}
+
+.vs-stepper__label--current {
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.vs-stepper__step:has(.vs-stepper__node--done) .vs-stepper__label {
+    color: var(--fg);
+}
+
+.vs-stepper__bar {
+    width: 24px;
+    height: 1px;
+    background: var(--border);
+    border-radius: 1px;
+}
+
+.vs-stepper__bar--done {
+    background: var(--accent);
+}

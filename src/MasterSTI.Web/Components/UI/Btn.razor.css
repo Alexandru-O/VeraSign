@@ -1,0 +1,96 @@
+/* Btn — variants + sizes ported 1:1 from prototype/components/Brand.jsx Btn.
+   Legacy variants (primaryDark, gold, dangerGhost) kept for callers that
+   still reference them. */
+
+.vs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease),
+                opacity   var(--t-fast) var(--ease),
+                box-shadow var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease);
+    white-space: nowrap;
+}
+
+.vs-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.vs-btn:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+
+/* Sizes — match Brand.jsx (sm: 32h/13fz/12pad, md: 40h/14fz/16pad, lg: 48h/15fz/20pad) */
+.vs-btn--sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: var(--r-md); gap: 6px; }
+.vs-btn--md { height: 40px; padding: 0 16px; font-size: 14px; border-radius: var(--r-md); gap: 8px; }
+.vs-btn--lg { height: 48px; padding: 0 20px; font-size: 15px; border-radius: var(--r-md); gap: 10px; }
+
+/* Variants */
+.vs-btn--primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+}
+.vs-btn--primary:hover:not(:disabled)  { opacity: 0.9; }
+.vs-btn--primary:active:not(:disabled) { opacity: 0.85; }
+
+.vs-btn--secondary {
+    background: var(--bg-elev);
+    color: var(--fg);
+    border-color: var(--border);
+}
+.vs-btn--secondary:hover:not(:disabled) { background: var(--bg-sunken); }
+
+.vs-btn--ghost {
+    background: transparent;
+    color: var(--fg);
+    border-color: transparent;
+}
+.vs-btn--ghost:hover:not(:disabled) { background: var(--bg-sunken); }
+
+.vs-btn--danger {
+    background: transparent;
+    color: var(--danger);
+    border-color: var(--border);
+}
+.vs-btn--danger:hover:not(:disabled) { background: var(--danger-bg); }
+
+/* Legacy variants — quietly retargeted to the v2 monochrome ramp. */
+.vs-btn--primaryDark {
+    background: var(--bg-inverse);
+    color: var(--fg-inverse);
+    border-color: var(--bg-inverse);
+}
+.vs-btn--primaryDark:hover:not(:disabled) { opacity: 0.92; }
+
+.vs-btn--gold {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+}
+.vs-btn--gold:hover:not(:disabled) { opacity: 0.9; }
+
+.vs-btn--dangerGhost {
+    background: transparent;
+    color: var(--danger);
+    border-color: transparent;
+}
+.vs-btn--dangerGhost:hover:not(:disabled) { background: var(--danger-bg); }
+
+/* Full-width helper */
+.vs-btn[style*="width:100%"] { width: 100%; }
+
+/* Spinner */
+.vs-btn__spinner {
+    width: 14px; height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 700ms linear infinite;
+}

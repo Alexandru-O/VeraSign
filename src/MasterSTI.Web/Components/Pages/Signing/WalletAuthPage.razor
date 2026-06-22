@@ -1,0 +1,202 @@
+@page "/signing/{signingRequestId:guid}/wallet-auth"
+@* Demo QR-handoff landing — referenced from PlaceFields.razor:43 *@
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>VeraSign · Autentificare Wallet</PageTitle>
+
+<h1>Autentificare prin EU Wallet</h1>
+
+@if (_loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Se încarcă...</span></div>
+}
+else if (_qrPayload is not null)
+{
+    <p class="text-muted">Scanează codul QR cu portofelul EUDIW pentru autentificare sau folosește butonul de simulator.</p>
+
+    <div class="row g-4 align-items-start">
+        <div class="col-auto">
+            <div class="card p-3 text-center" style="width:280px;">
+                <div class="border p-4 bg-white text-center">
+                    <div class="bi bi-qr-code fs-1 text-dark d-block mb-2"></div>
+                    <small class="text-muted">Loc rezervat cod QR</small>
+                </div>
+                <small class="text-muted mt-2">Scanează cu portofelul EUDIW</small>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card p-3 mb-3">
+                <h6>Deep link</h6>
+                <code class="small text-break">@_qrPayload</code>
+            </div>
+
+            <div class="mb-3">
+                <strong>Stare:</strong> <span class="badge @GetStatusBadgeClass()">@_authStatus</span>
+            </div>
+
+            @if (_error is not null)
+            {
+                <div class="alert alert-danger">@_error</div>
+            }
+
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-outline-warning" @onclick="SimulateEudiwResponse" disabled="@_simulating">
+                    @if (_simulating)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    Simulează răspuns EUDIW (dev)
+                </button>
+
+                <button class="btn btn-outline-secondary" @onclick="GoBack">Înapoi</button>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-danger">Generarea cererii de autorizare EUDIW a eșuat.</div>
+    <button class="btn btn-outline-secondary" @onclick="GoBack">Înapoi</button>
+}
+
+@code {
+    [Parameter]
+    public Guid SigningRequestId { get; set; }
+
+    private string? _qrPayload;
+    private string? _nonce;
+    private string _authStatus = "Pending";
+    private bool _loading = true;
+    private bool _simulating;
+    private string? _error;
+    private PeriodicTimer? _pollTimer;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var resp = await client.PostAsync($"/api/eudiw/request/{SigningRequestId}", null);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                _error = $"Crearea cererii EUDIW a eșuat: {(int)resp.StatusCode}";
+            }
+            else
+            {
+                var result = await resp.Content.ReadFromJsonAsync<EudiwRequestResult>();
+                _qrPayload = result?.QrPayload;
+                _nonce = result?.Nonce;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        _cts = new CancellationTokenSource();
+        _pollTimer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        _ = Task.Run(PollLoop);
+    }
+
+    private async Task PollLoop()
+    {
+        try
+        {
+            while (_pollTimer is not null && await _pollTimer.WaitForNextTickAsync(_cts!.Token))
+            {
+                if (_cts.IsCancellationRequested) return;
+                await PollOnce();
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task PollOnce()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Api");
+            var status = await client.GetFromJsonAsync<EudiwStatusResult>($"/api/eudiw/status/{SigningRequestId}");
+
+            if (status is null) return;
+
+            _authStatus = status.Status;
+
+            if (status.Status == "EudiwAuthorized")
+            {
+                _pollTimer?.Dispose();
+                _pollTimer = null;
+                await InvokeAsync(() => Navigation.NavigateTo($"/signing/{SigningRequestId}/credentials"));
+                return;
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Eroare la interogare: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SimulateEudiwResponse()
+    {
+        _simulating = true;
+        _error = null;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MasterSTI.Mock.Issuer");
+            var response = await client.PostAsJsonAsync("/simulate/eudiw-response", new
+            {
+                signingRequestId = SigningRequestId,
+                nonce = _nonce
+            });
+
+            if (!response.IsSuccessStatusCode)
+                _error = $"Simularea a eșuat ({(int)response.StatusCode}).";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Eroare la simulare: {ex.Message}";
+        }
+        finally
+        {
+            _simulating = false;
+        }
+    }
+
+    private string GetStatusBadgeClass() => _authStatus switch
+    {
+        "EudiwAuthorized" => "bg-success",
+        "Failed" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private void GoBack() => Navigation.NavigateTo($"/signing/{SigningRequestId}");
+
+    public async ValueTask DisposeAsync()
+    {
+        _cts?.Cancel();
+        _pollTimer?.Dispose();
+        _pollTimer = null;
+        _cts?.Dispose();
+        await Task.CompletedTask;
+    }
+
+    private record EudiwRequestResult(Guid SigningRequestId, string Nonce, string QrPayload);
+    private record EudiwStatusResult(Guid SigningRequestId, string Status, string? EudiwSubject);
+}

@@ -1,0 +1,41 @@
+@* Input — token-styled text input with optional leading icon.
+   Two-way binds via @bind-Value. *@
+
+<div class="vs-input @(Icon is null ? null : "vs-input--with-icon")">
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <span class="vs-input__icon" aria-hidden="true">
+            <Icon Name="@Icon" Size="16"/>
+        </span>
+    }
+    <input class="vs-input__el"
+           type="@Type"
+           value="@Value"
+           placeholder="@Placeholder"
+           disabled="@Disabled"
+           readonly="@ReadOnly"
+           autocomplete="@Autocomplete"
+           @oninput="HandleInput" />
+</div>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter] public string Type { get; set; } = "text";
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Autocomplete { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString() ?? string.Empty;
+        Value = v;
+        if (ValueChanged.HasDelegate)
+        {
+            await ValueChanged.InvokeAsync(v);
+        }
+    }
+}

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Issue-method tappable row used in Onboarding (legacy 3-panel flow).
+    Token-restyled to v2 surface tokens.
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Controls.OnboardingIssueOption"
+             x:Name="Root">
+
+    <Border x:Name="Outer"
+            BackgroundColor="{AppThemeBinding Light={StaticResource BgElevLight}, Dark={StaticResource BgElevDark}}"
+            Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+            StrokeThickness="1"
+            Padding="14"
+            StrokeShape="RoundRectangle 12">
+        <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnTapped" />
+        </Border.GestureRecognizers>
+        <Grid ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="14"
+              VerticalOptions="Center">
+
+            <Border Grid.Column="0"
+                    x:Name="GlyphHolder"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource BgSunkenLight}, Dark={StaticResource BgSunkenDark}}"
+                    StrokeThickness="0"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    StrokeShape="RoundRectangle 8">
+                <controls:IconView x:Name="GlyphIcon"
+                                   Size="20"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1"
+                                 Spacing="4"
+                                 VerticalOptions="Center">
+                <Grid ColumnDefinitions="Auto,Auto"
+                      ColumnSpacing="8"
+                      HorizontalOptions="Start">
+                    <Label Grid.Column="0"
+                           x:Name="TitleLabel"
+                           FontSize="14"
+                           FontFamily="{StaticResource FontSansSemiBold}"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                    <controls:PillView Grid.Column="1"
+                                       x:Name="RecPill"
+                                       Tone="info"
+                                       Text="Recomandat"
+                                       IsVisible="False" />
+                </Grid>
+                <Label x:Name="SubtitleLabel"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+            </VerticalStackLayout>
+
+            <controls:IconView Grid.Column="2"
+                               Name="chevron-right"
+                               Size="18"
+                               TintColor="{AppThemeBinding Light={StaticResource FgSubtleLight}, Dark={StaticResource FgSubtleDark}}" />
+        </Grid>
+    </Border>
+
+</ContentView>

@@ -1,0 +1,198 @@
+@page "/welcome"
+@layout BlankLayout
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+
+<PageTitle>VeraSign · Semnături electronice pentru piața europeană</PageTitle>
+
+@* Landing page (v2) — editorial, monochrome, pixel-port of
+   prototype/components/Landing.jsx (lines 4-188). *@
+
+<div class="vs-landing2">
+
+    @* ───── Sticky nav ───── *@
+    <div class="vs-landing2__nav">
+        <div class="vs-landing2__nav-inner">
+            <Logo Size="18"/>
+            <div class="vs-landing2__nav-links">
+                <a href="#produs">Produs</a>
+                <a href="#conformitate">Conformitate</a>
+                <a href="#dezvoltatori">Dezvoltatori</a>
+                <a href="#preturi">Prețuri</a>
+            </div>
+            <div class="vs-landing2__nav-right">
+                <ThemeToggle/>
+                <Btn Variant="ghost" Size="sm" OnClick="GoLogin">Autentificare</Btn>
+                <Btn Size="sm" IconRight="arrow-right" OnClick="GoLogin">Cere acces</Btn>
+            </div>
+        </div>
+    </div>
+
+    @* ───── Hero ───── *@
+    <section class="vs-landing2__hero">
+        <div class="vs-landing2__pill-eu">
+            <span class="vs-landing2__pill-dot"></span>
+            Conform eIDAS 2.0 · disponibil în 27 state UE
+        </div>
+
+        <h1 class="vs-landing2__h1">
+            Semnături electronice<br/>
+            <span class="vs-landing2__h1-mut">pentru piața europeană.</span>
+        </h1>
+        <p class="vs-landing2__lede">
+            Identitate prin EU Digital Identity Wallet. Semnături calificate (QES) cu valoare juridică.
+            Un singur SDK, conformitate completă.
+        </p>
+        <div class="vs-landing2__hero-cta">
+            <Btn Size="lg" IconRight="arrow-right" OnClick="GoLogin">Vezi prototipul</Btn>
+            <Btn Size="lg" Variant="secondary" Icon="doc">Documentație</Btn>
+        </div>
+
+        <div class="vs-landing2__hero-visual">
+            @* Terminal *@
+            <div class="vs-landing2__term">
+                <div class="vs-landing2__term-bar">
+                    <span class="vs-landing2__term-dot" style="background:#FF5F57"></span>
+                    <span class="vs-landing2__term-dot" style="background:#FEBC2E"></span>
+                    <span class="vs-landing2__term-dot" style="background:#28C840"></span>
+                    <span class="vs-landing2__term-path">~/api</span>
+                </div>
+                <div class="vs-landing2__term-line vs-landing2__term-line--dim">$ curl -X POST https://api.verasign.eu/v1/signatures \</div>
+                <div class="vs-landing2__term-line vs-landing2__term-line--dim">&nbsp;&nbsp;-H "Authorization: Bearer $TOKEN" \</div>
+                <div class="vs-landing2__term-line vs-landing2__term-line--dim">&nbsp;&nbsp;-d '{"document": "...", "level": "QES"}'</div>
+                <div class="vs-landing2__term-line" style="margin-top:12px">&gt; sending OID4VP request...</div>
+                <div class="vs-landing2__term-line">&gt; wallet attestation verified ✓</div>
+                <div class="vs-landing2__term-line">&gt; CSC /signatures/signHash ✓</div>
+                <div class="vs-landing2__term-line">&gt; RFC 3161 timestamp embedded ✓</div>
+                <div class="vs-landing2__term-line vs-landing2__term-line--ok">✓ Signed in 2.4s · PAdES-LTV B-LTA</div>
+                <div class="vs-landing2__term-line vs-landing2__term-line--id">signature_id: vs_sig_8f3a92c1</div>
+            </div>
+
+            @* Signed card *@
+            <div class="vs-landing2__doc-card">
+                <div class="vs-landing2__doc-head">
+                    <div class="eyebrow">Document</div>
+                    <Pill Tone="success" Dot="true">Semnat</Pill>
+                </div>
+                <div class="vs-landing2__doc-title">Contract de servicii Q2</div>
+                <div class="vs-landing2__doc-sub">Tech Partners SRL · 8 pagini</div>
+                <div class="vs-landing2__doc-rows">
+                    <div><span>Semnatar</span><span>Alex Popescu</span></div>
+                    <div><span>Nivel</span><SigLevel Level="QES" Size="sm"/></div>
+                    <div><span>TSP</span><span>certSIGN</span></div>
+                    <div><span>Timestamp</span><span class="mono" style="font-size:11px;">14:02:38 GMT</span></div>
+                </div>
+                <div class="vs-landing2__doc-id mono">ID: vs_sig_8f3a92c1</div>
+            </div>
+        </div>
+    </section>
+
+    @* ───── Trust strip ───── *@
+    <section class="vs-landing2__trust">
+        <span>eIDAS 2.0</span><span>·</span>
+        <span>OID4VP</span><span>·</span>
+        <span>CSC v2.0</span><span>·</span>
+        <span>PAdES B-LTA</span><span>·</span>
+        <span>RFC 3161</span><span>·</span>
+        <span>ETSI EN 319</span>
+    </section>
+
+    @* ───── Features ───── *@
+    <section id="produs" class="vs-landing2__section">
+        <div class="vs-landing2__eyebrow eyebrow">Produs</div>
+        <h2 class="vs-landing2__h2">
+            Trei suprafețe.<br/>
+            <span class="vs-landing2__h1-mut">Un singur backbone criptografic.</span>
+        </h2>
+        <div class="vs-landing2__features">
+            @foreach (var f in _features)
+            {
+                <div class="vs-landing2__feature">
+                    <div class="vs-landing2__feature-num">@f.Num</div>
+                    <div class="vs-landing2__feature-title">@f.Title</div>
+                    <div class="vs-landing2__feature-desc">@f.Desc</div>
+                    <div class="vs-landing2__feature-tag">@f.Tag</div>
+                </div>
+            }
+        </div>
+    </section>
+
+    @* ───── Compliance ───── *@
+    <section id="conformitate" class="vs-landing2__compliance">
+        <div class="vs-landing2__compliance-inner">
+            <div>
+                <div class="vs-landing2__eyebrow eyebrow">Conformitate</div>
+                <h2 class="vs-landing2__h2 vs-landing2__h2--small">Trei niveluri.<br/>Toate eIDAS.</h2>
+                <p class="vs-landing2__compliance-lede">
+                    Alege nivelul potrivit pentru fiecare flux. Toate sunt ridicate prin TSP-uri calificate înregistrate
+                    în Listele de Încredere ale UE.
+                </p>
+            </div>
+            <div class="vs-landing2__levels">
+                @for (var i = 0; i < _levels.Length; i++)
+                {
+                    var lv = _levels[i];
+                    var sep = i > 0;
+                    <div class="vs-landing2__level @(sep ? "vs-landing2__level--sep" : null)">
+                        <div class="vs-landing2__level-l mono">@lv.L</div>
+                        <div>
+                            <div class="vs-landing2__level-t">@lv.T</div>
+                            <div class="vs-landing2__level-d">@lv.D</div>
+                        </div>
+                        <div class="vs-landing2__level-use">@lv.Use</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    @* ───── Architecture ───── *@
+    <section id="dezvoltatori" class="vs-landing2__section">
+        <div class="vs-landing2__eyebrow eyebrow">Arhitectură</div>
+        <h2 class="vs-landing2__h2 vs-landing2__h2--small">Standardele europene, integrate.</h2>
+        <ArchDiagram/>
+    </section>
+
+    @* ───── CTA ───── *@
+    <section class="vs-landing2__cta-band">
+        <h2 class="vs-landing2__cta-title">
+            Construit pentru<br/>
+            <span class="vs-landing2__h1-mut">încrederea publică.</span>
+        </h2>
+        <p class="vs-landing2__cta-lede">Acces beta pentru instituții, notari, IFN-uri și echipe juridice corporate.</p>
+        <div class="vs-landing2__cta-actions">
+            <Btn Size="lg" IconRight="arrow-right" OnClick="GoLogin">Cere acces</Btn>
+            <Btn Size="lg" Variant="secondary">Discută cu vânzări</Btn>
+        </div>
+    </section>
+
+    <footer class="vs-landing2__foot">
+        <Logo Size="14"/>
+        <div class="vs-landing2__foot-links">
+            <span>© 2026 VeraSign</span>
+            <span>Termeni</span>
+            <span>Confidențialitate</span>
+            <span>Trust List</span>
+        </div>
+    </footer>
+</div>
+
+@code {
+    private record Feature(string Num, string Title, string Desc, string Tag);
+    private static readonly Feature[] _features = new[]
+    {
+        new Feature("01", "Mobil", "Aplicație .NET MAUI pentru semnatari. Identitate prin EUDIW, QR pairing, biometrie, semnare cu PIN.", "iOS · Android"),
+        new Feature("02", "Web",   "Panou Blazor pentru emitenți: încarcă PDF, definește câmpuri, urmărește semnatari, verifică documente.", "Blazor Server"),
+        new Feature("03", "API",   "ASP.NET Core cu integrare CSC v2.0, OID4VP, validare ETSI și marcaj temporal RFC 3161.", "REST · Webhooks"),
+    };
+
+    private record Level(string L, string T, string D, string Use);
+    private static readonly Level[] _levels = new[]
+    {
+        new Level("SES",  "Simplă",     "Acord prin click sau touch. Pentru consimțăminte interne și acorduri de risc redus.", "Ex: politici interne, acceptare T&C"),
+        new Level("AdES", "Avansată",   "Cu certificat individual. Identifică unic semnatarul și detectează modificări ulterioare.", "Ex: contracte B2B, NDA-uri"),
+        new Level("QES",  "Calificată", "Echivalent juridic cu semnătura olografă în toată UE. Emisă pe QSCD prin TSP calificat.", "Ex: notarial, public, financiar"),
+    };
+
+    private void GoLogin() => Navigation.NavigateTo("/login");
+}

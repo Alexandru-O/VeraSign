@@ -1,0 +1,57 @@
+.vs-render-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 12px 0;
+}
+
+.vs-render-row__body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.vs-render-row__body strong {
+    font-weight: 600;
+    letter-spacing: -0.005em;
+}
+
+.vs-render-row--ok {
+    background: color-mix(in srgb, var(--success, #15803D) 8%, transparent);
+    border-color: color-mix(in srgb, var(--success, #15803D) 28%, transparent);
+    color: var(--success-700, #14532D);
+}
+
+.vs-render-row--warn {
+    background: color-mix(in srgb, var(--warning, #D97706) 10%, transparent);
+    border-color: color-mix(in srgb, var(--warning, #D97706) 35%, transparent);
+    color: var(--warning-700, #92400E);
+}
+
+.vs-render-row__dl {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 4px 12px;
+    margin: 6px 0 0 0;
+    font-size: 13px;
+}
+
+.vs-render-row__dl dt {
+    color: color-mix(in srgb, currentColor 75%, transparent);
+}
+
+.vs-render-row__dl dd {
+    margin: 0;
+}
+
+.vs-render-row .vs-mono {
+    font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+    font-size: 12px;
+}

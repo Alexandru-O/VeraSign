@@ -1,0 +1,82 @@
+@* SequenceDiagram — vertical swimlane sequence diagram for OID4VP + CSC.
+   Direct port of prototype/index.html SequenceDiagram (lines 248-310). *@
+
+@{
+    var w = 50 + _lanes.Length * 150;
+    var h = _headerY + 60 + _steps.Length * _rowH + 20;
+}
+
+<svg width="100%" viewBox="@($"0 0 {w} {h}")" class="vs-seq">
+    @foreach (var l in _lanes)
+    {
+        var lx = LaneX(l.Id);
+        var fill = l.Color == "#F8CF3F" ? "#FFF9E5" : (l.Color == "#0F3E93" ? "#E8EEF7" : "#F7F8FA");
+        var stroke = l.Color == "#CAD7ED" ? "#C3CAD6" : l.Color;
+        <g>
+            <rect x="@(lx - 55)" y="@(_headerY - 20)" width="110" height="40" rx="8" fill="@fill" stroke="@stroke" stroke-width="1.5"/>
+            @{
+                var lines = l.Label.Split('\n');
+            }
+            @for (var j = 0; j < lines.Length; j++)
+            {
+                var labelColor = l.Color == "#F8CF3F" ? "#9A7807" : (l.Color == "#0F3E93" ? "#0A3179" : "#424A59");
+                <svg:text x="@lx" y="@(_headerY - 4 + j * 12)" text-anchor="middle" font-size="10"
+                      font-weight="@(j == 0 ? 700 : 500)" fill="@labelColor" font-family="Inter">@lines[j]</svg:text>
+            }
+            <line x1="@lx" y1="@(_headerY + 20)" x2="@lx" y2="@(h - 10)" stroke="#DFE4EC" stroke-width="1.5" stroke-dasharray="3 3"/>
+        </g>
+    }
+    @for (var i = 0; i < _steps.Length; i++)
+    {
+        var s = _steps[i];
+        var x1 = LaneX(s.From);
+        var x2 = LaneX(s.To);
+        var y = RowY(i);
+        <g>
+            <svg:text x="12" y="@(y + 3)" font-size="10" fill="#8E96A6" font-family="JetBrains Mono">@((i + 1).ToString("00"))</svg:text>
+            <line x1="@x1" y1="@y" x2="@x2" y2="@y" stroke="#0F3E93" stroke-width="1.5" marker-end="url(#vs-seq-arrow)"/>
+            <svg:text x="@((x1 + x2) / 2)" y="@(y - 4)" text-anchor="middle" font-size="10" fill="#020E26" font-family="Inter" font-weight="500">@s.Label</svg:text>
+        </g>
+    }
+    <defs>
+        <marker id="vs-seq-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="#0F3E93"/>
+        </marker>
+    </defs>
+</svg>
+
+@code {
+    private record Lane(string Id, string Label, string Color);
+    private record Step(string From, string To, string Label);
+
+    private static readonly Lane[] _lanes = new[]
+    {
+        new Lane("user", "Cetățean\n(EU Wallet)",       "#F8CF3F"),
+        new Lane("rp",   "VeraSign\nRelying Party",     "#0F3E93"),
+        new Lane("csc",  "CSC Server\n(RSSP)",          "#0F3E93"),
+        new Lane("qscd", "QSCD\n(HSM calificat)",       "#F8CF3F"),
+        new Lane("tsa",  "TSA\n(timestamp)",            "#CAD7ED"),
+    };
+
+    private static readonly Step[] _steps = new[]
+    {
+        new Step("user", "rp",   "openid-vp:// auth request (presentation_definition)"),
+        new Step("rp",   "user", "VP token cu PID + signing cert request"),
+        new Step("user", "rp",   "Attestation semnat OID4VP"),
+        new Step("rp",   "csc",  "POST /credentials/authorize (SAD)"),
+        new Step("csc",  "user", "Push authorization challenge"),
+        new Step("user", "csc",  "PIN + biometric release"),
+        new Step("rp",   "csc",  "POST /signatures/signHash (SHA-256)"),
+        new Step("csc",  "qscd", "Activate private key · sign"),
+        new Step("qscd", "csc",  "RSA/ECDSA signature value"),
+        new Step("csc",  "tsa",  "RFC 3161 timestamp request"),
+        new Step("tsa",  "csc",  "TimeStampToken"),
+        new Step("csc",  "rp",   "CAdES-LTV / PAdES signed PDF"),
+    };
+
+    private const int _rowH = 34;
+    private const int _headerY = 50;
+
+    private static int LaneX(string id) => 50 + Array.FindIndex(_lanes, l => l.Id == id) * 150;
+    private static int RowY(int i) => _headerY + 50 + i * _rowH;
+}

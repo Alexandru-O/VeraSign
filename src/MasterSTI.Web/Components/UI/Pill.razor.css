@@ -1,0 +1,40 @@
+/* Pill — v2 token-driven. */
+
+.vs-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    line-height: 1.4;
+    white-space: nowrap;
+    font-family: var(--font-sans);
+}
+
+.vs-pill__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Tones */
+.vs-pill--neutral { background: var(--bg-sunken); color: var(--fg-muted); }
+.vs-pill--neutral .vs-pill__dot { background: var(--fg-subtle); }
+
+.vs-pill--success { background: var(--success-bg); color: var(--success); }
+.vs-pill--success .vs-pill__dot { background: var(--success); }
+
+.vs-pill--warning { background: var(--warning-bg); color: var(--warning); }
+.vs-pill--warning .vs-pill__dot { background: var(--warning); }
+
+.vs-pill--danger { background: var(--danger-bg); color: var(--danger); }
+.vs-pill--danger .vs-pill__dot { background: var(--danger); }
+
+.vs-pill--info { background: var(--info-bg); color: var(--info); }
+.vs-pill--info .vs-pill__dot { background: var(--info); }
+
+.vs-pill--glow { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 25%, transparent); }

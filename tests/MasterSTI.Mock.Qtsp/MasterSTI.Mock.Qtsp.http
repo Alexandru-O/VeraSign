@@ -1,0 +1,6 @@
+@MasterSTI.Mock.Qtsp_HostAddress = https://localhost:7111
+
+GET {{MasterSTI.Mock.Qtsp_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

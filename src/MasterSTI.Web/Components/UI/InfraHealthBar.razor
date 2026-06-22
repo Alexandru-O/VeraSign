@@ -1,0 +1,103 @@
+@* InfraHealthBar — bottom-of-dashboard status strip for the 6 infrastructure
+   components that make remote QES work end-to-end. Live data via the
+   <Diagnostics> parameter (GET /api/dashboard/diagnostics); demo fallback
+   kicks in when null so the component stays useful in isolation. *@
+
+@using MasterSTI.Shared.DTOs.Dashboard
+
+<section class="vs-infra" aria-labelledby="vs-infra-title">
+    <header class="vs-infra__head">
+        <div>
+            <h2 id="vs-infra-title" class="vs-infra__title">Infrastructură semnare</h2>
+            <p class="vs-infra__sub">Stare componente · ultim probe @_probeLabel</p>
+        </div>
+        <Pill Tone="@_overallTone" Dot="true">@_overallLabel</Pill>
+    </header>
+
+    <ul class="vs-infra__grid" role="list">
+        @foreach (var node in _liveNodes)
+        {
+            <li class="vs-infra__node vs-infra__node--@node.Health"
+                title="@node.Detail">
+                <span class="vs-infra__dot" aria-hidden="true"></span>
+                <span class="vs-infra__body">
+                    <span class="vs-infra__name">@node.Name</span>
+                    <span class="vs-infra__detail">@node.Detail</span>
+                </span>
+                @if (node.Rtt is not null)
+                {
+                    <span class="vs-infra__rtt" aria-label="@($"latență {node.Rtt}")">@node.Rtt</span>
+                }
+                @if (node.Sparkline is { Count: > 0 })
+                {
+                    <span class="vs-infra__spark">
+                        <Sparkline Buckets="node.Sparkline" Label="@node.Name" />
+                    </span>
+                }
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    /// <summary>Server-probed health snapshot. Falls back to demo nodes when null.</summary>
+    [Parameter] public DiagnosticsDto? Diagnostics { get; set; }
+
+    private sealed record InfraNode(
+        string Name,
+        string Detail,
+        string Health,
+        string? Rtt,
+        IReadOnlyList<string>? Sparkline);
+
+    private static readonly InfraNode[] _demoNodes = new[]
+    {
+        new InfraNode("QTSP CSC v2", "certSIGN RO · /signHash",       "ok",   "142 ms", null),
+        new InfraNode("TSA",         "DigiCert · RFC 3161",            "ok",   "98 ms",  null),
+        new InfraNode("OCSP",        "responder eMag CA · RFC 6960",   "ok",   "61 ms",  null),
+        new InfraNode("LTV Archive", "10 ani · arhivare PDF semnate",  "ok",   null,     null),
+        new InfraNode("EUDIW Issuer","cheia publică RS256 (cached)",   "warn", "—",      null),
+        new InfraNode("API self",    "200 OK · /healthz",              "ok",   "12 ms",  null),
+    };
+
+    private IReadOnlyList<InfraNode> _liveNodes => Diagnostics is { Nodes.Count: > 0 }
+        ? Diagnostics.Nodes
+            .Select(n => new InfraNode(
+                n.Name,
+                n.Detail,
+                n.Health,
+                n.RttMs is long ms ? $"{ms} ms" : null,
+                n.Sparkline))
+            .ToList()
+        : _demoNodes;
+
+    private string _probeLabel
+    {
+        get
+        {
+            if (Diagnostics is null) return "acum 12s";
+            var delta = DateTime.UtcNow - Diagnostics.ProbedAt;
+            if (delta.TotalSeconds < 5)  return "acum";
+            if (delta.TotalSeconds < 60) return $"acum {(int)delta.TotalSeconds}s";
+            if (delta.TotalMinutes < 60) return $"acum {(int)delta.TotalMinutes} min";
+            return Diagnostics.ProbedAt.ToLocalTime().ToString("HH:mm");
+        }
+    }
+
+    private string _overallTone
+    {
+        get
+        {
+            if (_liveNodes.Any(n => n.Health == "err"))  return "danger";
+            if (_liveNodes.Any(n => n.Health == "warn")) return "warning";
+            return "success";
+        }
+    }
+
+    private string _overallLabel => _overallTone switch
+    {
+        "danger"  => "Degradat",
+        "warning" => "Atenție",
+        _         => "Operațional"
+    };
+}

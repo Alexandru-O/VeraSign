@@ -1,0 +1,291 @@
+@* SigningPipeline — horizontal visualization of the 5-stage thesis pipeline
+   (EUDIW auth -> SD-JWT verify -> SAD consent -> CSC signHash -> PAdES embed).
+   Each step is a button that opens an inline detail modal with the RFC/standard
+   reference, a technical description, and a small log preview.
+
+   Counts and per-stage health are fed in via [Parameter] Stats from the parent
+   (Dashboard pulls GET /api/dashboard/pipeline-stats). The standards / log /
+   description fields are intentionally static reference content that does not
+   come from the DB — they are part of the thesis narrative, not telemetry.
+   When Stats is null the component falls back to the demo numbers so it stays
+   useful in isolation. *@
+
+@using MasterSTI.Shared.DTOs.Dashboard
+
+<section class="vs-pipe" aria-labelledby="vs-pipe-title">
+    <header class="vs-pipe__head">
+        <div>
+            <h2 id="vs-pipe-title" class="vs-pipe__title">Flux semnare — ultimele 24h</h2>
+            <p class="vs-pipe__sub">
+                Pipeline conform eIDAS 2.0 · click pe etapă pentru detalii tehnice
+                @if (Stats is { FailedTotal: > 0 })
+                {
+                    <span class="vs-pipe__failed"> · @Stats.FailedTotal eșecuri</span>
+                }
+            </p>
+        </div>
+        <Pill Tone="@_overallTone" Dot="true">@_overallLabel</Pill>
+    </header>
+
+    <ol class="vs-pipe__track" role="list">
+        @for (var i = 0; i < _steps.Length; i++)
+        {
+            var step = _steps[i];
+            var idx = i;
+            var (count, health, failed) = ResolveLive(idx, step);
+            <li class="vs-pipe__cell">
+                <button type="button"
+                        class="vs-pipe__node vs-pipe__node--@health"
+                        @onclick="() => OpenStep(idx)"
+                        aria-label="@($"Etapa {idx + 1}: {step.Title}. {count} sesiuni{(failed > 0 ? $", {failed} eșecuri" : string.Empty)}.")">
+                    <span class="vs-pipe__idx">@(idx + 1)</span>
+                    <span class="vs-pipe__node-body">
+                        <span class="vs-pipe__node-title">@step.Title</span>
+                        <span class="vs-pipe__node-meta">
+                            <span class="vs-pipe__count">@count</span>
+                            <span class="vs-pipe__count-label">@step.CountLabel</span>
+                        </span>
+                    </span>
+                    @if (failed > 0)
+                    {
+                        <span class="vs-pipe__fail-badge" aria-hidden="true" title="@($"{failed} eșecuri în 24h")">@failed</span>
+                    }
+                    <span class="vs-pipe__dot" aria-hidden="true"></span>
+                </button>
+                @if (i < _steps.Length - 1)
+                {
+                    <span class="vs-pipe__arrow" aria-hidden="true">
+                        <Icon Name="arrow-right" Size="14"/>
+                    </span>
+                }
+            </li>
+        }
+    </ol>
+</section>
+
+@if (_openStep is { } open)
+{
+    <div class="vs-pipe-modal__backdrop" @onclick="CloseStep" role="presentation">
+        <div class="vs-pipe-modal__box" @onclick:stopPropagation="true" role="dialog" aria-modal="true"
+             aria-labelledby="vs-pipe-modal-title"
+             tabindex="-1"
+             @ref="_modalBox"
+             @onkeydown="HandleKeyDown">
+            <header class="vs-pipe-modal__head">
+                <div class="vs-pipe-modal__head-text">
+                    <div class="vs-pipe-modal__step">Etapa @(_openIndex + 1) din @_steps.Length</div>
+                    <h3 id="vs-pipe-modal-title" class="vs-pipe-modal__title">@open.Title</h3>
+                </div>
+                <button class="vs-pipe-modal__close" @onclick="CloseStep" aria-label="Închide" type="button">
+                    <Icon Name="x" Size="16"/>
+                </button>
+            </header>
+
+            <div class="vs-pipe-modal__body">
+                <p class="vs-pipe-modal__desc">@open.Description</p>
+
+                <div class="vs-pipe-modal__metrics">
+                    <div class="vs-pipe-modal__metric">
+                        <div class="vs-pipe-modal__metric-label">Sesiuni 24h</div>
+                        <div class="vs-pipe-modal__metric-value">@_openLive.Count</div>
+                    </div>
+                    <div class="vs-pipe-modal__metric">
+                        <div class="vs-pipe-modal__metric-label">Eșecuri 24h</div>
+                        <div class="vs-pipe-modal__metric-value @(_openLive.Failed > 0 ? "vs-pipe-modal__metric-value--err" : null)">@_openLive.Failed</div>
+                    </div>
+                    <div class="vs-pipe-modal__metric">
+                        <div class="vs-pipe-modal__metric-label">Latență mediană</div>
+                        <div class="vs-pipe-modal__metric-value vs-pipe-modal__mono">@open.MedianLatency</div>
+                    </div>
+                </div>
+
+                <div class="vs-pipe-modal__section">
+                    <div class="vs-pipe-modal__section-title">Standard / Specificație</div>
+                    <ul class="vs-pipe-modal__chips">
+                        @foreach (var s in open.Standards)
+                        {
+                            <li><Pill Tone="neutral">@s</Pill></li>
+                        }
+                    </ul>
+                </div>
+
+                <div class="vs-pipe-modal__section">
+                    <div class="vs-pipe-modal__section-title">Log recent (mock)</div>
+                    <pre class="vs-pipe-modal__log"><code>@open.LogSample</code></pre>
+                </div>
+            </div>
+
+            <footer class="vs-pipe-modal__foot">
+                <Btn Variant="ghost" Size="sm" OnClick="CloseStep">Închide</Btn>
+            </footer>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public PipelineStatsDto? Stats { get; set; }
+
+    private int _openIndex = -1;
+    private PipelineStep? _openStep => _openIndex >= 0 && _openIndex < _steps.Length ? _steps[_openIndex] : null;
+    private (int Count, string Health, int Failed) _openLive => _openIndex >= 0 ? ResolveLive(_openIndex, _steps[_openIndex]) : (0, "warn", 0);
+    private ElementReference _modalBox;
+    private bool _shouldFocusModal;
+
+    private void OpenStep(int idx)
+    {
+        _openIndex = idx;
+        _shouldFocusModal = true;
+    }
+
+    private void CloseStep() => _openIndex = -1;
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "Escape" or "Esc") CloseStep();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldFocusModal && _openIndex >= 0)
+        {
+            _shouldFocusModal = false;
+            try { await _modalBox.FocusAsync(); } catch { /* element already gone */ }
+        }
+    }
+
+    /// <summary>
+    /// Prefer the live stage from <see cref="Stats"/> at the same order; fall back to
+    /// the static demo numbers baked into <see cref="_steps"/> when no Stats payload
+    /// has been provided yet (loading / standalone usage).
+    /// </summary>
+    private (int Count, string Health, int Failed) ResolveLive(int idx, PipelineStep fallback)
+    {
+        if (Stats is { Stages.Count: > 0 })
+        {
+            var stage = Stats.Stages.FirstOrDefault(s => s.Order == idx + 1);
+            if (stage is not null)
+                return (stage.Count, stage.Health, stage.Failed);
+        }
+        return (fallback.Count, fallback.Health, 0);
+    }
+
+    private string _overallTone
+    {
+        get
+        {
+            if (Stats is null) return "success";
+            if (Stats.Stages.Any(s => s.Health == "err")) return "danger";
+            if (Stats.Stages.All(s => s.Count == 0))      return "warning";
+            if (Stats.Stages.Any(s => s.Health == "warn")) return "warning";
+            return "success";
+        }
+    }
+
+    private string _overallLabel => _overallTone switch
+    {
+        "danger"  => "Degradat",
+        "warning" => Stats is { Stages.Count: > 0 } && Stats.Stages.All(s => s.Count == 0)
+            ? "Inactiv 24h"
+            : "Atenție",
+        _ => "Operațional"
+    };
+
+    private sealed record PipelineStep(
+        string Title,
+        string Description,
+        int Count,
+        string CountLabel,
+        string Health,
+        string SuccessRate,
+        string MedianLatency,
+        string[] Standards,
+        string LogSample);
+
+    private static readonly PipelineStep[] _steps = new[]
+    {
+        new PipelineStep(
+            Title: "Autentificare EUDIW",
+            Description:
+                "Holder-ul prezintă PID-ul din EU Digital Identity Wallet printr-un schimb " +
+                "OpenID4VP. Server-ul generează state + nonce, codează cererea ca request_uri " +
+                "scurt și verifică răspunsul venit pe response_uri.",
+            Count: 12,
+            CountLabel: "sesiuni active",
+            Health: "ok",
+            SuccessRate: "100%",
+            MedianLatency: "412 ms",
+            Standards: new[] { "OpenID4VP 1.0", "eIDAS 2.0 / ARF 1.4", "OAuth 2.0 PAR" },
+            LogSample:
+                "[14:02:11] state=4d2f… nonce=9c1e… → openid4vp:// (request_uri)\n" +
+                "[14:02:18] response_uri ← vp_token (sd-jwt) + presentation_submission\n" +
+                "[14:02:18] nonce match ✓  state purge ✓"),
+
+        new PipelineStep(
+            Title: "Verificare SD-JWT",
+            Description:
+                "SD-JWT-ul emis de Issuer este verificat: semnătura RS256 cu cheia publică " +
+                "EUDIW Issuer, dezvăluirile selective sunt validate prin sd_hash, iar KB-JWT-ul " +
+                "wallet-ului confirmă holder binding-ul prin RFC 7800 cnf.jwk.",
+            Count: 12,
+            CountLabel: "verificate",
+            Health: "ok",
+            SuccessRate: "100%",
+            MedianLatency: "38 ms",
+            Standards: new[] { "SD-JWT VC (draft-12)", "RFC 7800 cnf.jwk", "JOSE / RFC 7519" },
+            LogSample:
+                "[14:02:18] issuer sig RS256 ✓  iat 2026-05-12T11:01Z\n" +
+                "[14:02:18] sd_hash sha-256 ✓  disclosures: 6/6\n" +
+                "[14:02:18] kb-jwt ES256 ✓  aud match ✓  cnf.jwk thumbprint a1b2…ef90"),
+
+        new PipelineStep(
+            Title: "Consimțământ SAD",
+            Description:
+                "Holder-ul autorizează semnarea în wallet (biometric + PIN). Wallet-ul " +
+                "transmite Signature Activation Data (SAD) către CSC-ul QTSP-ului via " +
+                "OAuth2 PKCE; SAD-ul nu este logat și este zero-ed imediat după semnare.",
+            Count: 9,
+            CountLabel: "consimțăminte",
+            Health: "ok",
+            SuccessRate: "100%",
+            MedianLatency: "2.1 s",
+            Standards: new[] { "CSC v2 §11.5 SAD", "OAuth 2.0 PKCE / RFC 7636", "eIDAS Sole Control" },
+            LogSample:
+                "[14:02:21] /csc/v2/oauth2/authorize ← code_challenge S256\n" +
+                "[14:02:23] biometric ✓ pin ✓ (wallet local)\n" +
+                "[14:02:23] /csc/v2/oauth2/token → SAD (memory only, never persisted)"),
+
+        new PipelineStep(
+            Title: "CSC signHash",
+            Description:
+                "Hash-ul PAdES pre-calculat al documentului este trimis către QTSP-ul de la " +
+                "distanță prin Cloud Signature Consortium API v2. Cheia QES nu părăsește " +
+                "HSM-ul QTSP; răspunsul este semnătura PKCS#7 detașată.",
+            Count: 7,
+            CountLabel: "semnări reușite",
+            Health: "ok",
+            SuccessRate: "100%",
+            MedianLatency: "742 ms",
+            Standards: new[] { "CSC API v2 §11.9 signHash", "PKCS#1 / RFC 8017", "RFC 3161 TSA" },
+            LogSample:
+                "[14:02:24] POST /csc/v2/signatures/signHash credentialID=qes-ro-001\n" +
+                "[14:02:25] response: signatures[0] (RSA-SHA256, 256B)\n" +
+                "[14:02:25] tsa: RFC3161 token attached (digicert tsa)"),
+
+        new PipelineStep(
+            Title: "PAdES embed + LTV",
+            Description:
+                "Semnătura externă este injectată în placeholder-ul PAdES pre-creat cu " +
+                "itext7 (deferred signing). Apoi se adaugă verificările OCSP/CRL pentru " +
+                "Long-Term Validation și se generează raportul de validare.",
+            Count: 7,
+            CountLabel: "PAdES B-LT",
+            Health: "ok",
+            SuccessRate: "100%",
+            MedianLatency: "318 ms",
+            Standards: new[] { "ETSI EN 319 142 PAdES B-LT", "RFC 6960 OCSP", "itext7 LtvVerification" },
+            LogSample:
+                "[14:02:25] PdfSigner.SignDeferred → byteRange ok\n" +
+                "[14:02:25] LTV: OCSP responses 2/2 ✓  CRL 1/1 ✓\n" +
+                "[14:02:25] signed PDF persisted · audit event SignatureCompleted"),
+    };
+}

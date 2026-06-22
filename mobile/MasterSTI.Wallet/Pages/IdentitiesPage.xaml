@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Identities (Wallet) — port of MobileScreens.jsx MWallet.
+    Header "Wallet / Identitățile mele", list of ID cards, dashed
+    "Adaugă identitate" CTA, MobileTabBarView bottom.
+    PRESERVES the existing SecureStorage-driven binding in code-behind
+    (BuildCardsAsync detects PID via wallet.sdjwt).
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.IdentitiesPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource BgLight}, Dark={StaticResource BgDark}}">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="0,52,0,96" Spacing="0">
+
+                <!-- Header -->
+                <VerticalStackLayout Padding="24,0,24,16" Spacing="4">
+                    <Label Text="Wallet"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                    <Label Text="Identitățile mele"
+                           FontSize="28"
+                           FontFamily="{StaticResource FontSansSemiBold}"
+                           LineHeight="1.1"
+                           TextColor="{AppThemeBinding Light={StaticResource FgLight}, Dark={StaticResource FgDark}}" />
+                    <Label x:Name="SubtitleLabel"
+                           Text="3 identități"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                           Margin="0,2,0,0" />
+                </VerticalStackLayout>
+
+                <!-- Cards list (filled by code-behind BuildCardsAsync) -->
+                <VerticalStackLayout x:Name="IdentitiesHost"
+                                     Padding="16,0"
+                                     Spacing="8" />
+
+                <!-- Add identity dashed CTA -->
+                <Border Margin="16,12,16,0"
+                        BackgroundColor="Transparent"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                        StrokeThickness="1"
+                        StrokeDashArray="4,4"
+                        Padding="16"
+                        StrokeShape="RoundRectangle 12">
+                    <HorizontalStackLayout Spacing="8"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center">
+                        <controls:IconView Name="plus"
+                                           Size="14"
+                                           TintColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}" />
+                        <Label Text="Adaugă identitate"
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                               VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- Back link -->
+                <Label Text="Înapoi la cereri"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource FgMutedLight}, Dark={StaticResource FgMutedDark}}"
+                       HorizontalOptions="Center"
+                       Padding="6"
+                       Margin="0,16,0,0">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackTapped" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <controls:MobileTabBarView Grid.Row="0"
+                                   Active="wallet"
+                                   VerticalOptions="End" />
+    </Grid>
+
+</ContentPage>

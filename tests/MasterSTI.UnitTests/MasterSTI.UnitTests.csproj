@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.5" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MasterSTI.Api\MasterSTI.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- TrustListProvider reads from AppContext.BaseDirectory; <Content> doesn't
+         flow across ProjectReference, so link the JSON into the test output too. -->
+    <None Include="..\..\src\MasterSTI.Api\Common\Trust\trust-list.json"
+          Link="Common\Trust\trust-list.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+
+    <!-- ADR-0008 step 6 RenderDivergence corpus. RenderDivergenceFixtureTests
+         enumerates AppContext.BaseDirectory/Fixtures/RenderDivergence at run time;
+         link the committed PDFs + .expected.json siblings into the test output. -->
+    <None Include="..\Fixtures\RenderDivergence\*.pdf"
+          Link="Fixtures\RenderDivergence\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Fixtures\RenderDivergence\*.json"
+          Link="Fixtures\RenderDivergence\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Link the wallet's SdJwtParser source so the test project can exercise it
+         without taking a ProjectReference on the MAUI csproj (which needs the
+         Android workload). The parser is pure C# with no MAUI dependencies. -->
+    <Compile Include="..\..\mobile\MasterSTI.Wallet\Services\SdJwtParser.cs"
+             Link="Wallet\SdJwtParser.cs" />
+    <!-- Same trick for wallet types/mappers that are pure C#. SignResultMapper
+         contains the HTTP-status → SignErrorKind contract that PinPage's lockout
+         counter depends on; testing it directly avoids hosting a MAUI app. -->
+    <Compile Include="..\..\mobile\MasterSTI.Wallet\Services\WalletSignTypes.cs"
+             Link="Wallet\WalletSignTypes.cs" />
+    <Compile Include="..\..\mobile\MasterSTI.Wallet\Services\SignResultMapper.cs"
+             Link="Wallet\SignResultMapper.cs" />
+    <Compile Include="..\..\mobile\MasterSTI.Wallet\Services\IWalletApiClient.cs"
+             Link="Wallet\IWalletApiClient.cs" />
+    <Compile Include="..\..\mobile\MasterSTI.Wallet\Services\WalletSigningOrchestrator.cs"
+             Link="Wallet\WalletSigningOrchestrator.cs" />
+    <!-- ADR-0011: link the wallet's RequestObjectVerifier so the test project
+         can exercise the JWS validation logic without spinning up MAUI. Same
+         link-include pattern as SdJwtParser above. -->
+    <Compile Include="..\..\mobile\MasterSTI.Wallet\Services\RequestObjectVerifier.cs"
+             Link="Wallet\RequestObjectVerifier.cs" />
+    <Compile Include="..\..\mobile\MasterSTI.Wallet\Services\IRenderCommitmentCarrier.cs"
+             Link="Wallet\IRenderCommitmentCarrier.cs" />
+  </ItemGroup>
+
+</Project>

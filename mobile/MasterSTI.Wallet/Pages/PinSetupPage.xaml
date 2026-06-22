@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    PIN setup — onboarding step after biometric pairing, before Inbox.
+    The user picks a numeric unlock PIN (entered twice). Only a salted hash
+    is persisted; plaintext never leaves this page.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.PinSetupPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{StaticResource Bg}">
+
+    <ScrollView>
+        <Grid RowDefinitions="Auto,*,Auto"
+              Padding="28,72,28,32">
+
+            <!-- Title -->
+            <VerticalStackLayout Grid.Row="0" Spacing="8">
+                <Label Text="Setează un cod PIN"
+                       FontFamily="{StaticResource FontSerif}"
+                       FontSize="26"
+                       TextColor="{StaticResource RoBlue900}" />
+                <Label Text="Codul PIN deblochează portofelul când biometria nu este disponibilă. Minim 6 cifre."
+                       FontSize="14"
+                       TextColor="{StaticResource Fg3}" />
+            </VerticalStackLayout>
+
+            <!-- PIN fields -->
+            <VerticalStackLayout Grid.Row="1"
+                                 Spacing="20"
+                                 Margin="0,40,0,0">
+                <controls:FieldView Label="Cod PIN">
+                    <Border BackgroundColor="{StaticResource BgElev}"
+                            Stroke="{StaticResource Border}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="12,0">
+                        <Entry x:Name="PinEntry"
+                               IsPassword="True"
+                               Keyboard="Numeric"
+                               MaxLength="12"
+                               Placeholder="Minim 6 cifre"
+                               TextColor="{StaticResource Fg}"
+                               TextChanged="OnPinChanged" />
+                    </Border>
+                </controls:FieldView>
+
+                <controls:FieldView Label="Confirmă codul PIN">
+                    <Border BackgroundColor="{StaticResource BgElev}"
+                            Stroke="{StaticResource Border}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="12,0">
+                        <Entry x:Name="ConfirmEntry"
+                               IsPassword="True"
+                               Keyboard="Numeric"
+                               MaxLength="12"
+                               Placeholder="Reintrodu codul"
+                               TextColor="{StaticResource Fg}"
+                               TextChanged="OnPinChanged" />
+                    </Border>
+                </controls:FieldView>
+
+                <Label x:Name="ErrorLabel"
+                       Text=""
+                       FontSize="13"
+                       TextColor="{StaticResource Danger500}"
+                       IsVisible="False" />
+            </VerticalStackLayout>
+
+            <!-- Continue -->
+            <controls:BtnView Grid.Row="2"
+                              x:Name="ContinueBtn"
+                              Text="Continuă"
+                              Variant="primary"
+                              Full="True"
+                              Clicked="OnContinueClicked" />
+        </Grid>
+    </ScrollView>
+
+</ContentPage>

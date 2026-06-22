@@ -1,0 +1,131 @@
+/* WalletStatusBanner — h ~72px, full-width banner with left icon + body + right CTA. */
+
+.vs-walletb {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    transition: background var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease);
+}
+
+/* State tints — subtle left-edge accent + tone-aware border. */
+.vs-walletb--connected  { border-left: 3px solid var(--success); }
+.vs-walletb--expiring   { border-left: 3px solid var(--warning); background: linear-gradient(90deg, var(--warning-bg) 0%, var(--bg-elev) 35%); }
+.vs-walletb--unenrolled { border-left: 3px solid var(--danger);  background: linear-gradient(90deg, var(--danger-bg) 0%, var(--bg-elev) 35%); }
+
+/* Icon */
+.vs-walletb__ic {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-md);
+    background: var(--bg-sunken);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg);
+    flex-shrink: 0;
+}
+
+.vs-walletb--connected  .vs-walletb__ic { background: var(--success-bg); color: var(--success); }
+.vs-walletb--expiring   .vs-walletb__ic { background: var(--warning-bg); color: var(--warning); }
+.vs-walletb--unenrolled .vs-walletb__ic { background: var(--danger-bg);  color: var(--danger); }
+
+/* Body — two rows */
+.vs-walletb__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.vs-walletb__row1,
+.vs-walletb__row2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.vs-walletb__row1 { font-size: 14px; color: var(--fg); }
+.vs-walletb__row2 { font-size: 12px; color: var(--fg-muted); }
+
+.vs-walletb__row2--muted { color: var(--fg-muted); }
+
+.vs-walletb__name { font-weight: 600; color: var(--fg); }
+.vs-walletb__meta { color: var(--fg-muted); }
+
+.vs-walletb__role-hint {
+    display: inline-flex;
+    align-items: center;
+    color: var(--fg-subtle);
+    cursor: help;
+    padding: 2px;
+    border-radius: var(--r-xs);
+    transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.vs-walletb__role-hint:hover,
+.vs-walletb__role-hint:focus-visible {
+    color: var(--fg);
+    background: var(--bg-sunken);
+    outline: none;
+}
+
+.vs-walletb__sep { color: var(--fg-subtle); }
+
+.vs-walletb__kv {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vs-walletb__k { color: var(--fg-subtle); }
+.vs-walletb__v { color: var(--fg); }
+
+.vs-walletb__thumb {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg);
+    background: var(--bg-sunken);
+    padding: 2px 6px;
+    border-radius: var(--r-xs);
+    letter-spacing: 0.02em;
+}
+
+.vs-walletb__expiry-hint {
+    color: var(--warning);
+    font-weight: 600;
+    margin-left: 2px;
+}
+
+.vs-walletb__badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Actions */
+.vs-walletb__actions { flex-shrink: 0; }
+
+/* Responsive */
+@media (max-width: 800px) {
+    .vs-walletb {
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+    }
+    .vs-walletb__actions {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+    .vs-walletb__row1, .vs-walletb__row2 { font-size: 12px; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .vs-walletb { transition: none; }
+}

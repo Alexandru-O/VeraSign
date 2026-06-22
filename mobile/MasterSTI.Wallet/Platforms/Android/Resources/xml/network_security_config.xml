@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Wallet network security configuration.
+
+  See docs/adr/0009-wallet-tls-pinning.md for the full posture rationale.
+
+  Posture today (prototype):
+    * Cleartext HTTP is forbidden on every domain — failing closed on accidental
+      plain-HTTP regressions in the API layer is preferable to silently falling
+      through TLS in production.
+    * Trust anchors are scoped to the system CA store. No app-bundled extra CAs.
+    * No <pin-set> — see ADR-0009 for the dev-cert-rotation rationale.
+
+  Future pinning (when ADR revisit criteria fire — see ADR-0009):
+    * Drop the chosen SPKI SHA-256 digest into the <pin-set> block below.
+    * Set expiration to (cert.notAfter - 30 days) so rotation is forced before
+      the pinned cert expires in the wild.
+    * Use TWO pins per the OWASP MASVS-CRYPTO-2 backup-pin requirement: the
+      live SPKI plus a backup pin for the next rotation's key, so rotation
+      does not require an emergency APK push.
+    * No C# changes are required — only this file and a fresh APK build.
+-->
+<network-security-config>
+  <base-config cleartextTrafficPermitted="false">
+    <trust-anchors>
+      <certificates src="system" />
+    </trust-anchors>
+  </base-config>
+
+  <!--
+    Pinning scaffold. UNCOMMENT and populate when ADR-0009 revisit criteria
+    fire. Replace <domain> values and pin digests with the real production
+    domain + SPKI hashes.
+
+    <domain-config>
+      <domain includeSubdomains="true">api.verasign.example</domain>
+      <pin-set expiration="YYYY-MM-DD">
+        <pin digest="SHA-256">REPLACE_WITH_LIVE_SPKI_BASE64</pin>
+        <pin digest="SHA-256">REPLACE_WITH_BACKUP_SPKI_BASE64</pin>
+      </pin-set>
+    </domain-config>
+  -->
+</network-security-config>

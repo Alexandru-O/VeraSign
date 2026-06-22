@@ -1,0 +1,159 @@
+@page "/viewer/{Id:guid}"
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IAuthService Auth
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpFactory
+@inject IJSRuntime JS
+@inject ILogger<ViewerPage> Logger
+
+@using System.Net.Http.Json
+@using MasterSTI.Shared.DTOs
+
+<PageTitle>VeraSign · @(_fileName ?? "Vizualizator")</PageTitle>
+<PageHeader Title="Vizualizator document" Breadcrumb="Documente · Vizualizator"/>
+
+<div class="vs-viewer">
+    <Card Padding="16" AdditionalClass="vs-viewer__head">
+        <div class="vs-viewer__head-left">
+            <Btn Variant="ghost" Size="sm" Icon="chevron-left"
+                 OnClick='() => Navigation.NavigateTo($"/documents/{Id}")'>Înapoi</Btn>
+            <span class="vs-viewer__file">@(_fileName ?? "Document")</span>
+        </div>
+        <div class="vs-viewer__head-right">
+            @if (_pdfBytes is not null)
+            {
+                <a class="vs-viewer__download"
+                   href="/api/documents/@Id/download"
+                   target="_blank" rel="noopener">
+                    <Icon Name="download" Size="14"/>
+                    <span>Descarcă</span>
+                </a>
+            }
+        </div>
+    </Card>
+
+    <Card Padding="0" AdditionalClass="vs-viewer__frame-card">
+        @if (_loading)
+        {
+            <div class="vs-viewer__loading" role="status">Se încarcă documentul…</div>
+        }
+        else if (_error is not null)
+        {
+            <div class="vs-viewer__error" role="alert">
+                <Icon Name="x" Size="16"/>
+                <span>@_error</span>
+                <Btn Variant="ghost" Size="sm" OnClick="LoadAsync">Reîncearcă</Btn>
+            </div>
+        }
+        else
+        {
+            <iframe @ref="_iframe"
+                    class="vs-viewer__frame"
+                    title="Conținut document PDF"></iframe>
+        }
+    </Card>
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private string? _error;
+    private string? _fileName;
+    private byte[]? _pdfBytes;
+    private ElementReference _iframe;
+    private string? _objectUrl;
+    private bool _iframeMounted;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _loading = true;
+            _error = null;
+            _pdfBytes = null;
+            _iframeMounted = false;
+            StateHasChanged();
+
+            var client = HttpFactory.CreateClient("MasterSTI.Api");
+
+            // Best-effort filename for the header. Skipping it doesn't block the
+            // viewer — the iframe only needs the bytes.
+            try
+            {
+                var info = await client.GetFromJsonAsync<DocumentDto>($"/api/documents/{Id}/info");
+                _fileName = info?.FileName;
+            }
+            catch { /* surface the real failure via /render below */ }
+
+            var resp = await client.GetAsync($"/api/documents/{Id}/render");
+            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _error = "Documentul nu există sau a fost șters.";
+                return;
+            }
+            if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                _error = "Nu ai acces la acest document.";
+                return;
+            }
+            if (!resp.IsSuccessStatusCode)
+            {
+                _error = $"Nu am putut încărca PDF-ul ({(int)resp.StatusCode}).";
+                return;
+            }
+
+            _pdfBytes = await resp.Content.ReadAsByteArrayAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Viewer fetch failed for {DocumentId}", Id);
+            _error = "Nu am putut încărca documentul. Verifică conexiunea cu API-ul.";
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pdfBytes is null || _iframeMounted) return;
+
+        var b64 = Convert.ToBase64String(_pdfBytes);
+        try
+        {
+            _objectUrl = await JS.InvokeAsync<string>("verasignPdfViewer.show", _iframe, b64);
+            _iframeMounted = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Viewer JS mount failed for {DocumentId}", Id);
+            _error = "Browserul nu a putut afișa PDF-ul.";
+            _pdfBytes = null;
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_objectUrl is not null)
+        {
+            try { await JS.InvokeVoidAsync("verasignPdfViewer.revoke", _objectUrl); }
+            catch { /* circuit may already be gone */ }
+            _objectUrl = null;
+        }
+    }
+}

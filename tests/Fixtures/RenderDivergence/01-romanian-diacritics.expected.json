@@ -1,0 +1,21 @@
+{
+  "fixture": "01-romanian-diacritics.pdf",
+  "attackClass": "font-fallback",
+  "pageCount": 1,
+  "locale": "ro-RO",
+  "summary": "Romanian rental-contract excerpt. Source includes diacritics (ăîșțâ); fixture author falls back to Helvetica + ASCII transliteration when Noto Sans is unavailable on the generating host. The pinned PdfiumPinned-v1 renderer is the bitmap-identity authority — same source bytes must hash to the same R end-to-end.",
+  "disputeScenarios": [
+    {
+      "mutation": "Re-author the PDF embedding NotoSans-Regular.ttf in place of the Helvetica fallback (set NOTO_TTF_PATH and re-run RenderCommit.Cli generate-fixtures). The glyph shapes change for non-ASCII codepoints and any diacritic-bearing word renders with different pixels.",
+      "disputedPages": [1],
+      "expectedResult": "Disputed — committed R covers Helvetica-rendered ASCII text; R' over the Noto-rendered diacritic text diverges."
+    }
+  ],
+  "verifiedScenarios": [
+    {
+      "mutation": null,
+      "expectedResult": "Verified — bytes unchanged, PdfiumPinned-v1 deterministic on the committed source."
+    }
+  ],
+  "notes": "ADR-0008 §Test fixtures attack class 'font-fallback divergence'. Mladenov et al. NDSS 2021 §3.2."
+}

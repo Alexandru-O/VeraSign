@@ -1,0 +1,15 @@
+@inject PageContext Page
+
+@code {
+    /// <summary>
+    /// Drop into a page to set the topbar's title + breadcrumb.
+    /// Renders nothing — the layout reads PageContext via DI.
+    /// </summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string Breadcrumb { get; set; } = "VeraSign";
+
+    protected override void OnParametersSet()
+    {
+        Page.Set(Title, Breadcrumb);
+    }
+}

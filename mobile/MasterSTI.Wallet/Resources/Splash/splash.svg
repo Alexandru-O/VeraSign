@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!--
+    VeraSign splash — shield mark (design/assets/verasign-mark.svg) over wordmark.
+    Shield 96×96 centered at viewBox x-axis (x=128), spans y=48..144.
+    Wordmark baseline y=196 (32 px gap below shield), text-anchor="middle" at
+    x=128 so both shapes share the same vertical axis. Whole block centers on
+    viewBox y=128 (top y=48, bottom y=204, midpoint y=126).
+  -->
+  <g transform="translate(80 48) scale(2)">
+    <path d="M24 0 L46 6 V26 C46 38 36 46 24 48 C12 46 2 38 2 26 V6 Z" fill="#FFFFFF"/>
+    <path d="M14 24 L21 31 L34 17" stroke="#F8CF3F" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <g transform="translate(36 4) scale(0.55)">
+      <path d="M6 0 L7.4 4.3 L12 4.3 L8.3 7 L9.7 11.3 L6 8.6 L2.3 11.3 L3.7 7 L0 4.3 L4.6 4.3 Z" fill="#F8CF3F"/>
+    </g>
+  </g>
+  <!--
+    Split wordmark into two uniform <text> elements: SkiaSharp resizetizer's
+    text-anchor="middle" measurement on <text> + <tspan> with mixed style
+    only spans the outer run, shifting the rendered PNG left of viewBox center.
+    "Vera" anchored end at x=128, "Sign" anchored start at x=128.
+  -->
+  <text x="128" y="196" font-family="Georgia, serif" font-size="28" fill="#FFFFFF" text-anchor="end">Vera</text>
+  <text x="128" y="196" font-family="Georgia, serif" font-size="28" font-style="italic" fill="#F8CF3F" text-anchor="start">Sign</text>
+</svg>

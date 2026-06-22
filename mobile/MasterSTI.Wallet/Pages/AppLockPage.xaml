@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    AppLock — cold-start / resume biometric gate for an enrolled wallet.
+    Big circle + fingerprint. Unlock via biometric, or fall back to PIN.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MasterSTI.Wallet.Controls"
+             x:Class="MasterSTI.Wallet.Pages.AppLockPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{StaticResource Bg}">
+
+    <Grid RowDefinitions="*,Auto,*"
+          Padding="28,72,28,40">
+
+        <!-- Title -->
+        <VerticalStackLayout Grid.Row="0"
+                             Spacing="8"
+                             Margin="0,40,0,0"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Start">
+            <controls:LogoView HorizontalOptions="Center" />
+            <Label Text="Portofel blocat"
+                   FontFamily="{StaticResource FontSerif}"
+                   FontSize="26"
+                   TextColor="{StaticResource RoBlue900}"
+                   Margin="0,16,0,0"
+                   HorizontalOptions="Center" />
+            <Label x:Name="SubtitleLabel"
+                   Text="Deblochează cu biometria pentru a continua."
+                   FontSize="14"
+                   TextColor="{StaticResource Fg3}"
+                   HorizontalTextAlignment="Center"
+                   MaximumWidthRequest="280"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+
+        <!-- Lock circle -->
+        <VerticalStackLayout Grid.Row="1"
+                             Spacing="20"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center">
+            <Border x:Name="LockCircle"
+                    BackgroundColor="{StaticResource BgElev}"
+                    Stroke="{StaticResource Border}"
+                    StrokeThickness="2"
+                    WidthRequest="140"
+                    HeightRequest="140"
+                    StrokeShape="RoundRectangle 70"
+                    HorizontalOptions="Center">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnUnlockTapped" />
+                </Border.GestureRecognizers>
+                <controls:IconView x:Name="FpIcon"
+                                   Name="fingerprint"
+                                   Size="56"
+                                   TintColor="{StaticResource Fg3}"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+            </Border>
+            <Label x:Name="StatusLabel"
+                   Text="Apasă pentru a debloca"
+                   FontSize="13"
+                   TextColor="{StaticResource Fg3}"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+
+        <!-- Fallback actions -->
+        <VerticalStackLayout Grid.Row="2"
+                             Spacing="12"
+                             VerticalOptions="End"
+                             HorizontalOptions="Fill">
+            <controls:BtnView x:Name="RetryBtn"
+                              Text="Încearcă din nou"
+                              Variant="primary"
+                              Full="True"
+                              Clicked="OnRetryClicked" />
+            <controls:BtnView x:Name="PinBtn"
+                              Text="Folosește codul PIN"
+                              Variant="secondary"
+                              Full="True"
+                              Clicked="OnUsePinClicked" />
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>

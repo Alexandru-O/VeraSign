@@ -1,0 +1,8 @@
+/* BlankLayout — full-bleed canvas for /welcome and /login. */
+
+.vs-blank {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+}
