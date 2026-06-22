@@ -20,8 +20,13 @@ content integrity (WYSIWYS).
 
 🇷🇴 Versiunea în română: [README.ro.md](README.ro.md)
 
-<!-- TODO: drop a demo GIF here -> docs/screenshots/demo.gif -->
-<!-- ![VeraSign demo](docs/screenshots/demo.gif) -->
+## Demo
+
+End-to-end signing from the Blazor web app:
+
+https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/web-demo.mp4
+
+<sub>More clips below: <a href="#signing-pipeline--5-stages">wallet auth</a> · <a href="#signature-validation----verify--signedidvalidate">validation</a>.</sub>
 
 ## Why it's different
 
@@ -110,6 +115,10 @@ Or log in passwordless via the EU Wallet — QR modal + deep-link simulator.
 Per-stage failure attribution is written to `SigningRequest.FailedAtStage` and
 shown as a red badge on the affected node; SignalR pushes `dashboard-changed`.
 
+EUDIW wallet authentication + SAD consent (MAUI Android):
+
+https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/wallet-demo.mp4
+
 ## Signature validation — `/verify` + `/signed/{id}/validate`
 
 Six verdicts surfaced: **integrity** (PAdES byte-range), **timestamp**
@@ -117,6 +126,14 @@ Six verdicts surfaced: **integrity** (PAdES byte-range), **timestamp**
 List** (Issuer-DN matched to the curated 15-TSP snapshot), and **per-page
 integrity** (badge grid; divergent pages flagged red, stored vs recomputed
 hashes shown).
+
+Verifier overview:
+
+https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-overview.mp4
+
+Full validation report (per-page grid, Trust List pill, PAdES level):
+
+https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-report.mp4
 
 ## Recognized limits (out of scope for a prototype)
 
