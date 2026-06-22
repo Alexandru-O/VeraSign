@@ -24,7 +24,9 @@ content integrity (WYSIWYS).
 
 End-to-end signing from the Blazor web app:
 
-https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/web-demo.mp4
+<video controls muted width="100%">
+  <source src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/web-demo.mp4" type="video/mp4">
+</video>
 
 <sub>More clips below: <a href="#signing-pipeline--5-stages">wallet auth</a> · <a href="#signature-validation----verify--signedidvalidate">validation</a>.</sub>
 
@@ -117,7 +119,9 @@ shown as a red badge on the affected node; SignalR pushes `dashboard-changed`.
 
 EUDIW wallet authentication + SAD consent (MAUI Android):
 
-https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/wallet-demo.mp4
+<video controls muted width="100%">
+  <source src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/wallet-demo.mp4" type="video/mp4">
+</video>
 
 ## Signature validation — `/verify` + `/signed/{id}/validate`
 
@@ -129,11 +133,15 @@ hashes shown).
 
 Verifier overview:
 
-https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-overview.mp4
+<video controls muted width="100%">
+  <source src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-overview.mp4" type="video/mp4">
+</video>
 
 Full validation report (per-page grid, Trust List pill, PAdES level):
 
-https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-report.mp4
+<video controls muted width="100%">
+  <source src="https://github.com/Alexandru-O/VeraSign/raw/main/docs/media/verify-report.mp4" type="video/mp4">
+</video>
 
 ## Recognized limits (out of scope for a prototype)
 
